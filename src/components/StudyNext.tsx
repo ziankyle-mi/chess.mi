@@ -66,7 +66,7 @@ export const StudyNext: React.FC<StudyNextProps> = ({
     setSyncStatus('Connecting to Chess.com archives...')
 
     try {
-      const updated = await syncChesscom20Games(userToSync, (msg) => setSyncStatus(msg))
+      const updated = await syncChesscom20Games(userToSync, (msg: string) => setSyncStatus(msg))
       if (onBatchSync) {
         onBatchSync(updated)
       }

@@ -38,6 +38,7 @@ export interface AchillesHeel {
 export interface OpponentScoutReport {
   username: string
   platform: 'chesscom' | 'lichess'
+  timeControl: 'all' | 'blitz' | 'rapid' | 'bullet'
   rating?: number
   avatarUrl?: string
   totalGames: number
@@ -82,6 +83,7 @@ export const DEMO_SCOUT_PROFILES: Record<string, OpponentScoutReport> = {
   hikaru: {
     username: 'Hikaru',
     platform: 'chesscom',
+    timeControl: 'blitz',
     rating: 3430,
     totalGames: 50,
     wins: 38,
@@ -180,6 +182,7 @@ export const DEMO_SCOUT_PROFILES: Record<string, OpponentScoutReport> = {
   clubplayer: {
     username: 'ClubWarrior_1600',
     platform: 'chesscom',
+    timeControl: 'rapid',
     rating: 1585,
     totalGames: 40,
     wins: 19,
@@ -286,7 +289,11 @@ export const DEMO_SCOUT_PROFILES: Record<string, OpponentScoutReport> = {
 }
 
 // Fetch live scout report from Chess.com
-export async function fetchChessComScout(username: string, maxGames = 40): Promise<OpponentScoutReport> {
+export async function fetchChessComScout(
+  username: string,
+  maxGames = 40,
+  timeControl: 'all' | 'blitz' | 'rapid' | 'bullet' = 'all'
+): Promise<OpponentScoutReport> {
   const cleanUser = username.trim().toLowerCase()
   const archivesRes = await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(cleanUser)}/games/archives`)
   if (!archivesRes.ok) {
@@ -298,8 +305,8 @@ export async function fetchChessComScout(username: string, maxGames = 40): Promi
     throw new Error(`No games found for "${username}" on Chess.com`)
   }
 
-  // Fetch from the most recent 1-2 monthly archives
-  const recentArchives = archives.slice(-2).reverse()
+  // Fetch from the most recent monthly archives
+  const recentArchives = [...archives].reverse()
   const rawGames: any[] = []
 
   for (const archiveUrl of recentArchives) {
@@ -307,7 +314,11 @@ export async function fetchChessComScout(username: string, maxGames = 40): Promi
     if (res.ok) {
       const data = await res.json()
       if (Array.isArray(data.games)) {
-        rawGames.push(...data.games.reverse())
+        let monthGames = data.games.reverse()
+        if (timeControl !== 'all') {
+          monthGames = monthGames.filter((g: any) => g.time_class?.toLowerCase() === timeControl.toLowerCase())
+        }
+        rawGames.push(...monthGames)
         if (rawGames.length >= maxGames) break
       }
     }
@@ -315,16 +326,21 @@ export async function fetchChessComScout(username: string, maxGames = 40): Promi
 
   const selectedGames = rawGames.slice(0, maxGames)
   if (selectedGames.length === 0) {
-    throw new Error(`No completed games found for "${username}"`)
+    throw new Error(`No ${timeControl !== 'all' ? timeControl + ' ' : ''}games found for "${username}" on Chess.com`)
   }
 
-  return processRawGames(cleanUser, selectedGames, 'chesscom')
+  return processRawGames(cleanUser, selectedGames, 'chesscom', timeControl)
 }
 
 // Fetch live scout report from Lichess
-export async function fetchLichessScout(username: string, maxGames = 40): Promise<OpponentScoutReport> {
+export async function fetchLichessScout(
+  username: string,
+  maxGames = 40,
+  timeControl: 'all' | 'blitz' | 'rapid' | 'bullet' = 'all'
+): Promise<OpponentScoutReport> {
   const cleanUser = username.trim()
-  const url = `https://lichess.org/api/games/user/${encodeURIComponent(cleanUser)}?max=${maxGames}&opening=true&moves=true&perfType=blitz,rapid,classical`
+  const perfQuery = timeControl === 'all' ? 'blitz,rapid,classical,bullet' : timeControl
+  const url = `https://lichess.org/api/games/user/${encodeURIComponent(cleanUser)}?max=${maxGames}&opening=true&moves=true&perfType=${perfQuery}`
   const res = await fetch(url, {
     headers: { Accept: 'application/x-ndjson' }
   })
@@ -338,13 +354,18 @@ export async function fetchLichessScout(username: string, maxGames = 40): Promis
   const games = lines.map((l) => JSON.parse(l))
 
   if (games.length === 0) {
-    throw new Error(`No games found for "${username}" on Lichess`)
+    throw new Error(`No ${timeControl !== 'all' ? timeControl + ' ' : ''}games found for "${username}" on Lichess`)
   }
 
-  return processRawLichessGames(cleanUser, games)
+  return processRawLichessGames(cleanUser, games, timeControl)
 }
 
-function processRawGames(username: string, games: any[], platform: 'chesscom'): OpponentScoutReport {
+function processRawGames(
+  username: string,
+  games: any[],
+  platform: 'chesscom',
+  timeControl: 'all' | 'blitz' | 'rapid' | 'bullet' = 'all'
+): OpponentScoutReport {
   let wins = 0
   let draws = 0
   let losses = 0
@@ -412,6 +433,7 @@ function processRawGames(username: string, games: any[], platform: 'chesscom'): 
   return aggregateScoutData({
     username,
     platform,
+    timeControl,
     rating: playerRating,
     totalGames: games.length,
     wins,
@@ -423,7 +445,11 @@ function processRawGames(username: string, games: any[], platform: 'chesscom'): 
   })
 }
 
-function processRawLichessGames(username: string, games: any[]): OpponentScoutReport {
+function processRawLichessGames(
+  username: string,
+  games: any[],
+  timeControl: 'all' | 'blitz' | 'rapid' | 'bullet' = 'all'
+): OpponentScoutReport {
   let wins = 0
   let draws = 0
   let losses = 0
@@ -480,6 +506,7 @@ function processRawLichessGames(username: string, games: any[]): OpponentScoutRe
   return aggregateScoutData({
     username,
     platform: 'lichess',
+    timeControl,
     rating: playerRating,
     totalGames: games.length,
     wins,
@@ -494,6 +521,7 @@ function processRawLichessGames(username: string, games: any[]): OpponentScoutRe
 function aggregateScoutData({
   username,
   platform,
+  timeControl = 'all',
   rating,
   totalGames,
   wins,
@@ -505,6 +533,7 @@ function aggregateScoutData({
 }: {
   username: string
   platform: 'chesscom' | 'lichess'
+  timeControl?: 'all' | 'blitz' | 'rapid' | 'bullet'
   rating: number
   totalGames: number
   wins: number
@@ -693,6 +722,7 @@ function aggregateScoutData({
   return {
     username,
     platform,
+    timeControl,
     rating,
     totalGames,
     wins,

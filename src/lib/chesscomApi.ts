@@ -2,10 +2,14 @@ import type { AnalyzedGameRecord } from './progressStore'
 import { saveAnalyzedGamesBatch, getStoredGames } from './progressStore'
 import { analyzeGameRecordFast } from '../engine/batchAnalyzer'
 
+export type TimeControlFilter = 'all' | 'blitz' | 'rapid' | 'bullet'
+
 export interface ChesscomGameSummary {
   id: string
   url: string
   pgn: string
+  platform: 'chesscom' | 'lichess'
+  timeClass: string // 'blitz' | 'rapid' | 'bullet' | 'daily' | 'classical'
   white: {
     username: string
     rating: number
@@ -30,7 +34,10 @@ export interface ChesscomGameSummary {
   eco?: string
 }
 
-export async function fetchChesscomGames(username: string): Promise<ChesscomGameSummary[]> {
+export async function fetchChesscomGames(
+  username: string,
+  timeClass: TimeControlFilter = 'all'
+): Promise<ChesscomGameSummary[]> {
   const cleanUser = username.trim().toLowerCase()
   if (!cleanUser) throw new Error('Please enter a Chess.com username.')
 
@@ -49,16 +56,19 @@ export async function fetchChesscomGames(username: string): Promise<ChesscomGame
     throw new Error(`No games found in the archives for "${username}".`)
   }
 
-  // Fetch backwards across monthly archives until we collect at least 20 games
+  // Fetch backwards across monthly archives until we collect at least 25 matching games
   let rawGames: any[] = []
-  for (let i = archives.length - 1; i >= 0 && rawGames.length < 20; i--) {
+  for (let i = archives.length - 1; i >= 0 && rawGames.length < 25; i--) {
     try {
       const res = await fetch(archives[i])
       if (res.ok) {
         const data = await res.json()
-        const monthGames: any[] = data.games || []
+        let monthGames: any[] = data.games || []
         // Sort month games descending by end_time
         monthGames.sort((a, b) => (b.end_time || 0) - (a.end_time || 0))
+        if (timeClass !== 'all') {
+          monthGames = monthGames.filter((g) => g.time_class?.toLowerCase() === timeClass.toLowerCase())
+        }
         rawGames = [...rawGames, ...monthGames]
       }
     } catch (e) {
@@ -93,6 +103,8 @@ export async function fetchChesscomGames(username: string): Promise<ChesscomGame
         id: g.uuid || `${g.end_time}-${index}`,
         url: g.url,
         pgn: g.pgn,
+        platform: 'chesscom',
+        timeClass: g.time_class || 'standard',
         white: {
           username: g.white.username,
           rating: g.white.rating || 0,
@@ -125,6 +137,75 @@ export async function fetchChesscomGames(username: string): Promise<ChesscomGame
     })
 }
 
+export async function fetchLichessUserGames(
+  username: string,
+  timeClass: TimeControlFilter = 'all'
+): Promise<ChesscomGameSummary[]> {
+  const cleanUser = username.trim()
+  if (!cleanUser) throw new Error('Please enter a Lichess username.')
+
+  const perfQuery = timeClass === 'all' ? 'blitz,rapid,classical,bullet' : timeClass
+  const url = `https://lichess.org/api/games/user/${encodeURIComponent(cleanUser)}?max=20&pgnInJson=true&opening=true&perfType=${perfQuery}`
+
+  const res = await fetch(url, {
+    headers: { Accept: 'application/x-ndjson' }
+  })
+
+  if (!res.ok) {
+    if (res.status === 404) throw new Error(`Player "${username}" not found on Lichess.`)
+    throw new Error(`Lichess API error: ${res.statusText}`)
+  }
+
+  const text = await res.text()
+  const lines = text.trim().split('\n').filter(Boolean)
+  const rawGames = lines.map((l) => JSON.parse(l))
+
+  return rawGames
+    .filter((g) => g.pgn)
+    .map((g, index) => {
+      const isWhite = g.players?.white?.user?.name?.toLowerCase() === cleanUser.toLowerCase()
+      const playerColor: 'white' | 'black' = isWhite ? 'white' : 'black'
+      const opponent = isWhite ? g.players?.black : g.players?.white
+
+      let playerResult: 'win' | 'loss' | 'draw' = 'draw'
+      if (g.winner) {
+        playerResult = (isWhite && g.winner === 'white') || (!isWhite && g.winner === 'black') ? 'win' : 'loss'
+      }
+
+      const date = new Date(g.createdAt || Date.now())
+
+      return {
+        id: g.id || `lichess-${index}`,
+        url: `https://lichess.org/${g.id}`,
+        pgn: g.pgn,
+        platform: 'lichess',
+        timeClass: g.speed || g.perf || 'standard',
+        white: {
+          username: g.players?.white?.user?.name || 'Anonymous',
+          rating: g.players?.white?.rating || 0,
+          result: g.winner === 'white' ? 'win' : 'loss'
+        },
+        black: {
+          username: g.players?.black?.user?.name || 'Anonymous',
+          rating: g.players?.black?.rating || 0,
+          result: g.winner === 'black' ? 'win' : 'loss'
+        },
+        timeControl: g.speed ? g.speed.toUpperCase() : 'Standard',
+        endTime: Math.floor(g.lastMoveAt ? g.lastMoveAt / 1000 : Date.now() / 1000),
+        dateString: date.toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        }),
+        playerColor,
+        playerResult,
+        opponentUsername: opponent?.user?.name || 'Anonymous',
+        opponentRating: opponent?.rating || 0,
+        eco: g.opening?.name
+      }
+    })
+}
+
 function formatTimeControl(tc?: string): string {
   if (!tc) return 'Standard'
   if (tc.includes('+')) {
@@ -141,10 +222,6 @@ function formatTimeControl(tc?: string): string {
   return tc
 }
 
-/**
- * High-speed sync that pulls the latest 20 games for a player from Chess.com archives
- * and processes them into a rolling 20 FIFO window with complete phase metrics.
- */
 export async function syncChesscom20Games(
   username: string,
   onProgress?: (message: string) => void
@@ -167,7 +244,6 @@ export async function syncChesscom20Games(
       onProgress(`Syncing game ${i + 1}/${summaries.length} (vs ${s.opponentUsername})...`)
     }
 
-    // Check if we already have this exact game analyzed
     const already = existingGames.find(
       (g) =>
         g.id === s.id ||
@@ -192,4 +268,41 @@ export async function syncChesscom20Games(
   if (onProgress) onProgress('Finalizing rolling 20 window...')
   const updated = saveAnalyzedGamesBatch(analyzedBatch)
   return updated
+}
+
+export async function syncRecentGamesFast(
+  username: string,
+  onProgress?: (analyzed: number, total: number) => void
+): Promise<AnalyzedGameRecord[]> {
+  const summaries = await fetchChesscomGames(username)
+  if (summaries.length === 0) return []
+
+  const existing = getStoredGames()
+  const existingIds = new Set(existing.map((g) => g.id))
+  const newSummaries = summaries.filter((s) => !existingIds.has(s.id))
+
+  if (newSummaries.length === 0) return []
+
+  const total = Math.min(newSummaries.length, 10)
+  const toAnalyze = newSummaries.slice(0, total)
+  const results: AnalyzedGameRecord[] = []
+
+  for (let i = 0; i < toAnalyze.length; i++) {
+    const sum = toAnalyze[i]
+    try {
+      const record = analyzeGameRecordFast(sum.pgn, sum.accuracies, sum.id)
+      if (record) {
+        results.push(record)
+      }
+      onProgress?.(i + 1, total)
+    } catch (e) {
+      console.warn('Fast analysis failed for game:', sum.id, e)
+    }
+  }
+
+  if (results.length > 0) {
+    saveAnalyzedGamesBatch(results)
+  }
+
+  return results
 }

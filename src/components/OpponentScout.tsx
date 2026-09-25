@@ -22,22 +22,27 @@ interface OpponentScoutProps {
 export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine }) => {
   const [username, setUsername] = useState('Hikaru')
   const [platform, setPlatform] = useState<'chesscom' | 'lichess'>('chesscom')
+  const [timeControl, setTimeControl] = useState<'all' | 'blitz' | 'rapid' | 'bullet'>('all')
   const [report, setReport] = useState<OpponentScoutReport>(DEMO_SCOUT_PROFILES.hikaru)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const handleSearch = async (userToSearch = username, platToSearch = platform) => {
+  const handleSearch = async (
+    userToSearch = username,
+    platToSearch = platform,
+    tcToSearch = timeControl
+  ) => {
     const trimmed = userToSearch.trim()
     if (!trimmed) return
 
     // Quick demo matching
     const lower = trimmed.toLowerCase()
-    if (lower === 'hikaru' && platToSearch === 'chesscom') {
+    if (lower === 'hikaru' && platToSearch === 'chesscom' && tcToSearch === 'all') {
       setReport(DEMO_SCOUT_PROFILES.hikaru)
       setErrorMsg(null)
       return
     }
-    if (lower === 'club' || lower.includes('1600') || lower.includes('clubwarrior')) {
+    if ((lower === 'club' || lower.includes('1600') || lower.includes('clubwarrior')) && tcToSearch === 'all') {
       setReport(DEMO_SCOUT_PROFILES.clubplayer)
       setErrorMsg(null)
       return
@@ -48,10 +53,10 @@ export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine 
 
     try {
       if (platToSearch === 'chesscom') {
-        const data = await fetchChessComScout(trimmed, 40)
+        const data = await fetchChessComScout(trimmed, 40, tcToSearch)
         setReport(data)
       } else {
-        const data = await fetchLichessScout(trimmed, 40)
+        const data = await fetchLichessScout(trimmed, 40, tcToSearch)
         setReport(data)
       }
     } catch (err: any) {
@@ -159,6 +164,28 @@ export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine 
             </button>
           </div>
 
+          {/* Time control selector */}
+          <div className="flex items-center rounded-lg p-0.5 shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            {(['all', 'blitz', 'rapid', 'bullet'] as const).map((tc) => (
+              <button
+                key={tc}
+                type="button"
+                onClick={() => {
+                  setTimeControl(tc)
+                  handleSearch(username, platform, tc)
+                }}
+                className="px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all"
+                style={{
+                  background: timeControl === tc ? 'var(--bg-elevated)' : 'transparent',
+                  color: timeControl === tc ? 'var(--text)' : 'var(--text-muted)',
+                  boxShadow: timeControl === tc ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
+                }}
+              >
+                {tc === 'all' ? 'All' : tc === 'blitz' ? '⚡ Blitz' : tc === 'rapid' ? '⏱️ Rapid' : '🎯 Bullet'}
+              </button>
+            ))}
+          </div>
+
           {/* Username Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -223,11 +250,17 @@ export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine 
           >
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-[var(--text-muted)]">Target Opponent</span>
-              <div className="flex items-baseline gap-2 mt-0.5">
+              <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
                 <span className="text-base sm:text-lg font-bold font-mono text-[var(--text)]">{report.username}</span>
                 {report.rating && (
                   <span className="text-xs font-mono font-semibold text-[var(--accent)]">{report.rating} Elo</span>
                 )}
+                <span
+                  className="text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold uppercase"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--accent)', border: '1px solid var(--border-subtle)' }}
+                >
+                  {report.timeControl === 'all' ? 'All Speeds' : report.timeControl}
+                </span>
               </div>
             </div>
 
