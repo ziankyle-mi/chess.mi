@@ -99,22 +99,16 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
   const blackInitial = (blackPlayer.trim()[0] || 'B').toUpperCase()
 
   return (
-    <div className="w-full flex flex-col select-none font-sans">
-      {/* Zen Game Review Card */}
-      <div
-        className="rounded-xl overflow-hidden border shadow-sm flex flex-col"
-        style={{
-          background: 'var(--bg-panel)',
-          borderColor: 'var(--border-subtle)'
-        }}
-      >
+    <div className="w-full flex flex-col select-none font-sans gap-1">
+      {/* Review Panel — varied container treatments per DESIGN.md */}
+      <div className="flex flex-col">
         {/* Full Game Evaluation Timeline Graph */}
         {evalSvg && (
           <div
-            className="relative w-full h-[70px] overflow-hidden border-b"
+            className="relative w-full h-[70px] overflow-hidden"
             style={{
               background: 'var(--bg-secondary)',
-              borderColor: 'var(--border-subtle)'
+              borderBottom: '1px solid var(--border-subtle)'
             }}
           >
             <svg
@@ -173,7 +167,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
           </div>
         )}
 
-        <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+        <div className="p-3.5 sm:p-4 flex flex-col gap-3">
           {/* Players Header */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             {/* White Player */}
@@ -215,33 +209,32 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </div>
           </div>
 
-          {/* Accuracy Score Boxes - Clean Zen typography matching Image 1 */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center py-0.5">
+          {/* Accuracy — HERO element: largest, boldest per DESIGN.md */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center py-2">
             <div className="text-center">
-              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+              <span className="font-mono text-3xl sm:text-4xl font-black tracking-tighter" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.white.accuracy.toFixed(1)}
               </span>
             </div>
 
             <div className="text-center px-2">
-              <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
                 Accuracy
               </span>
             </div>
 
             <div className="text-center">
-              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+              <span className="font-mono text-3xl sm:text-4xl font-black tracking-tighter" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.black.accuracy.toFixed(1)}
               </span>
             </div>
           </div>
 
-          {/* Move Breakdown Table */}
+          {/* Move Breakdown — inset treatment: bg + padding, no border */}
           <div
-            className="rounded-lg overflow-hidden border"
+            className="rounded-lg overflow-hidden"
             style={{
-              background: 'var(--bg-secondary)',
-              borderColor: 'var(--border-subtle)'
+              background: 'var(--bg-secondary)'
             }}
           >
             <div className="divide-y divide-[var(--border-subtle)] text-xs">
@@ -255,9 +248,12 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
                         onSelectClassificationFilter(row.key)
                       }
                     }}
-                    className={`grid grid-cols-[50px_1fr_50px] items-center py-1 px-3 text-center transition-colors ${
+                    className={`grid grid-cols-[50px_1fr_50px] items-center py-1 px-3 text-center transition-all ${
                       isClickable ? 'cursor-pointer hover:bg-white/[0.05] active:bg-white/[0.08]' : 'hover:bg-white/[0.02]'
                     }`}
+                    style={{
+                      opacity: (row.white === 0 && row.black === 0) ? 0.4 : 1
+                    }}
                     title={isClickable ? `Filter and view ${row.label} moves` : undefined}
                   >
                     {/* White count */}
@@ -293,41 +289,41 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </button>
           </div>
 
-          {/* Game Rating (Performance Elo) - Clean typography matching Image 1 */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center py-0.5">
+          {/* Game Rating — secondary to Accuracy, but still prominent */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div className="text-center">
-              <span className="font-mono text-lg font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+              <span className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.white.gameRating}
               </span>
             </div>
 
             <div className="text-center px-2">
-              <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                Game rating
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                Game Rating
               </span>
             </div>
 
             <div className="text-center">
-              <span className="font-mono text-lg font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+              <span className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.black.gameRating}
               </span>
             </div>
           </div>
-
-          {/* Action Footer */}
-          <button
-            onClick={onReviewMoves}
-            className="w-full py-2.5 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 cursor-pointer mt-0.5"
-            style={{
-              background: 'var(--accent)',
-              color: 'var(--accent-text)'
-            }}
-          >
-            <Swords className="w-4 h-4" />
-            <span>Review Moves on Board</span>
-          </button>
-        </div>
+          </div>
       </div>
+
+      {/* CTA — standalone, no card wrapper */}
+      <button
+        onClick={onReviewMoves}
+        className="w-full py-2.5 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 cursor-pointer"
+        style={{
+          background: 'var(--accent)',
+          color: 'var(--accent-text)'
+        }}
+      >
+        <Swords className="w-4 h-4" />
+        <span>Review Moves on Board</span>
+      </button>
     </div>
   )
 }
