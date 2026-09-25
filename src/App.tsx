@@ -24,16 +24,17 @@ import { StudyNext } from './components/StudyNext'
 import { ThemePicker } from './components/ThemePicker'
 import { PlayerCard } from './components/PlayerCard'
 import { GameReviewReport } from './components/GameReviewReport'
+import { OpponentScout } from './components/OpponentScout'
 import { generateGameReviewReport } from './lib/ratingCalculator'
 import { computeMaterialAndCaptures } from './lib/chessUtils'
 import { playMoveAudio } from './lib/sounds'
-import { BarChart2, Compass, Download, CheckCircle2, Cpu, Swords, Volume2, VolumeX, Undo2, Award } from 'lucide-react'
+import { BarChart2, Compass, Download, CheckCircle2, Cpu, Swords, Volume2, VolumeX, Undo2, Award, Crosshair } from 'lucide-react'
 
 function AppInner() {
   const [game, setGame] = useState<ParsedGame>(() => parsePgn(SAMPLE_GAMES[0].pgn))
   const [currentMoveIndex, setCurrentMoveIndex] = useState<number>(0)
   const [isFlipped, setIsFlipped] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<'board' | 'stats' | 'study' | 'import'>('board')
+  const [activeTab, setActiveTab] = useState<'board' | 'stats' | 'study' | 'import' | 'scout'>('board')
   const [sideView, setSideView] = useState<'review' | 'analysis'>('review')
   const [moveListFilter, setMoveListFilter] = useState<ClassFilter>('all')
   const [filterCritical, setFilterCritical] = useState<boolean>(false)
@@ -390,12 +391,13 @@ function AppInner() {
   const tabs = [
     { id: 'review' as const, label: 'Review', icon: Award },
     { id: 'board' as const, label: 'Analysis', icon: Swords },
+    { id: 'scout' as const, label: 'Prep / Scout', icon: Crosshair },
     { id: 'stats' as const, label: 'Stats', icon: BarChart2 },
     { id: 'study' as const, label: 'Coach', icon: Compass },
     { id: 'import' as const, label: 'Import', icon: Download }
   ]
 
-  const handleNavClick = (id: 'review' | 'board' | 'stats' | 'study' | 'import') => {
+  const handleNavClick = (id: 'review' | 'board' | 'scout' | 'stats' | 'study' | 'import') => {
     if (id === 'review') {
       setActiveTab('board')
       setSideView('review')
@@ -564,6 +566,17 @@ function AppInner() {
                 setAggregateStats(calculateAggregateStats(records, userAccount))
               }}
               onLoadPgn={handleLoadPgn}
+            />
+          </div>
+        )}
+        {activeTab === 'scout' && (
+          <div className="w-full flex justify-center py-1">
+            <OpponentScout
+              onLoadOpeningLine={(pgn, _openingName) => {
+                handleLoadPgn(pgn)
+                setActiveTab('board')
+                setSideView('analysis')
+              }}
             />
           </div>
         )}
