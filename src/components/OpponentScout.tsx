@@ -12,7 +12,11 @@ import {
   Clock,
   Sparkles,
   RotateCcw,
-  Play
+  Play,
+  Zap,
+  Timer,
+  Flame,
+  Layers
 } from 'lucide-react'
 
 interface OpponentScoutProps {
@@ -166,24 +170,33 @@ export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine 
 
           {/* Time control selector */}
           <div className="flex items-center rounded-lg p-0.5 shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-            {(['all', 'blitz', 'rapid', 'bullet'] as const).map((tc) => (
-              <button
-                key={tc}
-                type="button"
-                onClick={() => {
-                  setTimeControl(tc)
-                  handleSearch(username, platform, tc)
-                }}
-                className="px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all"
-                style={{
-                  background: timeControl === tc ? 'var(--bg-elevated)' : 'transparent',
-                  color: timeControl === tc ? 'var(--text)' : 'var(--text-muted)',
-                  boxShadow: timeControl === tc ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
-                }}
-              >
-                {tc === 'all' ? 'All' : tc === 'blitz' ? '⚡ Blitz' : tc === 'rapid' ? '⏱️ Rapid' : '🎯 Bullet'}
-              </button>
-            ))}
+            {[
+              { id: 'all' as const, label: 'All', icon: Layers },
+              { id: 'blitz' as const, label: 'Blitz', icon: Zap },
+              { id: 'rapid' as const, label: 'Rapid', icon: Timer },
+              { id: 'bullet' as const, label: 'Bullet', icon: Flame }
+            ].map(({ id: tc, label, icon: Icon }) => {
+              const active = timeControl === tc
+              return (
+                <button
+                  key={tc}
+                  type="button"
+                  onClick={() => {
+                    setTimeControl(tc)
+                    handleSearch(username, platform, tc)
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer"
+                  style={{
+                    background: active ? 'var(--bg-elevated)' : 'transparent',
+                    color: active ? 'var(--text)' : 'var(--text-muted)',
+                    boxShadow: active ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--accent)' : 'inherit' }} />
+                  <span>{label}</span>
+                </button>
+              )
+            })}
           </div>
 
           {/* Username Input */}
@@ -255,12 +268,16 @@ export const OpponentScout: React.FC<OpponentScoutProps> = ({ onLoadOpeningLine 
                 {report.rating && (
                   <span className="text-xs font-mono font-semibold text-[var(--accent)]">{report.rating} Elo</span>
                 )}
-                <span
-                  className="text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold uppercase"
+                <div
+                  className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold uppercase"
                   style={{ background: 'var(--bg-secondary)', color: 'var(--accent)', border: '1px solid var(--border-subtle)' }}
                 >
-                  {report.timeControl === 'all' ? 'All Speeds' : report.timeControl}
-                </span>
+                  {report.timeControl === 'blitz' && <Zap className="w-3 h-3" />}
+                  {report.timeControl === 'rapid' && <Timer className="w-3 h-3" />}
+                  {report.timeControl === 'bullet' && <Flame className="w-3 h-3" />}
+                  {report.timeControl === 'all' && <Layers className="w-3 h-3" />}
+                  <span>{report.timeControl === 'all' ? 'All Speeds' : report.timeControl}</span>
+                </div>
               </div>
             </div>
 

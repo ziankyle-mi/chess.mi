@@ -6,7 +6,18 @@ import {
   type TimeControlFilter
 } from '../lib/chesscomApi'
 import { SAMPLE_GAMES } from '../lib/pgnParser'
-import { Search, FileText, Sparkles, Loader2, Clock, Trophy } from 'lucide-react'
+import {
+  Search,
+  FileText,
+  Sparkles,
+  Loader2,
+  Clock,
+  Trophy,
+  Zap,
+  Timer,
+  Flame,
+  Layers
+} from 'lucide-react'
 
 interface GameImportProps {
   onLoadPgn: (pgn: string) => void
@@ -122,24 +133,33 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
 
             {/* Time Control Filter */}
             <div className="flex items-center rounded-lg p-0.5 shrink-0" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
-              {(['all', 'blitz', 'rapid', 'bullet'] as const).map((tc) => (
-                <button
-                  key={tc}
-                  type="button"
-                  onClick={() => {
-                    setTimeControl(tc)
-                    if (username.trim()) handleFetch(username, platform, tc)
-                  }}
-                  className="px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer"
-                  style={{
-                    background: timeControl === tc ? 'var(--bg-elevated)' : 'transparent',
-                    color: timeControl === tc ? 'var(--text)' : 'var(--text-muted)',
-                    boxShadow: timeControl === tc ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
-                  }}
-                >
-                  {tc === 'all' ? 'All' : tc === 'blitz' ? '⚡ Blitz' : tc === 'rapid' ? '⏱️ Rapid' : '🎯 Bullet'}
-                </button>
-              ))}
+              {[
+                { id: 'all' as const, label: 'All', icon: Layers },
+                { id: 'blitz' as const, label: 'Blitz', icon: Zap },
+                { id: 'rapid' as const, label: 'Rapid', icon: Timer },
+                { id: 'bullet' as const, label: 'Bullet', icon: Flame }
+              ].map(({ id: tc, label, icon: Icon }) => {
+                const active = timeControl === tc
+                return (
+                  <button
+                    key={tc}
+                    type="button"
+                    onClick={() => {
+                      setTimeControl(tc)
+                      if (username.trim()) handleFetch(username, platform, tc)
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer"
+                    style={{
+                      background: active ? 'var(--bg-elevated)' : 'transparent',
+                      color: active ? 'var(--text)' : 'var(--text-muted)',
+                      boxShadow: active ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'
+                    }}
+                  >
+                    <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--accent)' : 'inherit' }} />
+                    <span>{label}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Username Input */}
@@ -219,8 +239,11 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
 
                     <div className="flex items-center gap-3 text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
                       <span className="flex items-center gap-1 font-semibold text-[var(--accent)]">
-                        <Clock className="w-3 h-3" />
-                        {game.timeClass.toUpperCase()} ({game.timeControl})
+                        {game.timeClass.toLowerCase() === 'blitz' && <Zap className="w-3 h-3" />}
+                        {game.timeClass.toLowerCase() === 'rapid' && <Timer className="w-3 h-3" />}
+                        {game.timeClass.toLowerCase() === 'bullet' && <Flame className="w-3 h-3" />}
+                        {!['blitz', 'rapid', 'bullet'].includes(game.timeClass.toLowerCase()) && <Clock className="w-3 h-3" />}
+                        <span>{game.timeClass.toUpperCase()} ({game.timeControl})</span>
                       </span>
                       <span>{game.dateString}</span>
                       <span className="capitalize">{game.playerColor}</span>
