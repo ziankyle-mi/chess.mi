@@ -346,7 +346,7 @@ export const MoveList: React.FC<MoveListProps> = ({
       )}
 
       {/* Moves */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto max-h-[330px] text-[13px]">
+      <div ref={containerRef} className="flex-1 overflow-y-auto max-h-[310px] text-[13px]">
         {moves.length === 0 ? (
           <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
             Load a game to see moves here.

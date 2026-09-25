@@ -266,37 +266,39 @@ export function generateDeepExplanation(
   } else if (move.captured) {
     headline = `Captures on ${move.to} (${move.san})`
   } else if (threatCreated) {
-    headline = `${pieceName.charAt(0).toUpperCase() + pieceName.slice(1)} develops to ${move.to} with threats`
+    headline = `${pieceName.charAt(0).toUpperCase() + pieceName.slice(1)} to ${move.to}: ${threatCreated}`
   } else if (controlsCenter) {
     headline = `Fights for central control on ${move.to}`
   }
 
-  // Explanation paragraph
-  const explanationParts: string[] = []
-  if (checkEvasionText) explanationParts.push(checkEvasionText)
-  if (checkDeliveredText) explanationParts.push(checkDeliveredText)
-  if (threatCreated) explanationParts.push(threatCreated)
-  if (threatPrevented && !checkEvasionText) explanationParts.push(threatPrevented)
-  if (threatConceded) explanationParts.push(threatConceded)
-
-  if (explanationParts.length === 0) {
-    explanationParts.push(move.explanation || `Solid move establishing coordination with the ${pieceName} on ${move.to}.`)
+  // Focused 1-sentence explanation
+  let explanation = move.explanation || ''
+  if (checkEvasionText) {
+    explanation = checkEvasionText
+  } else if (checkDeliveredText) {
+    explanation = checkDeliveredText
+  } else if (!explanation) {
+    if (threatConceded) {
+      explanation = threatConceded
+    } else if (threatCreated) {
+      explanation = threatCreated
+    } else {
+      explanation = `Solid move maintaining piece coordination with the ${pieceName}.`
+    }
   }
 
-  const explanation = explanationParts.join(' ')
-
-  // Why it matters
+  // Why it matters - 1 punchy principle
   let whyItMatters = ''
   if (wasInCheck) {
-    whyItMatters = 'Parrying check is mandatory. Finding the safest retreat square ensures your king does not remain under an ongoing mating net.'
+    whyItMatters = 'Parrying check is mandatory to protect the king and avoid mating nets.'
   } else if (isError) {
-    whyItMatters = `In chess, a single tactical oversight can surrender the balance. ${threatConceded || 'Avoid leaving unprotected pieces in active zones.'}`
+    whyItMatters = threatConceded
+      ? `A tactical oversight. Keep defensive awareness across all files.`
+      : 'Avoid leaving unprotected pieces or conceding central initiative.'
   } else if (move.moveNumber <= 12) {
-    whyItMatters = openingTipTheme
-      ? `Aligns with opening strategy: ${openingTipTheme}. Rapid development and central control dictate the upcoming middlegame.`
-      : 'Opening phase: develop minor pieces, castle early, and control center squares before launching flank attacks.'
+    whyItMatters = openingTipTheme || 'Control the center, develop minor pieces, and castle early.'
   } else {
-    whyItMatters = 'Maintains steady piece activity and prevents opponent infiltration while building pressure.'
+    whyItMatters = 'Maintains steady piece activity and prevents opponent infiltration.'
   }
 
   // Best move comparison

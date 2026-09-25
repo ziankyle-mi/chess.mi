@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import type { ParsedMove } from '../lib/pgnParser'
 import openingTipsData from '../data/openingTips.json'
-import { BookOpen, AlertTriangle, CheckCircle2, ArrowRight, ShieldCheck, Zap, Info } from 'lucide-react'
+import { BookOpen, AlertTriangle, CheckCircle2, ArrowRight, ShieldCheck, Zap } from 'lucide-react'
 import { ClassificationBadge } from './ClassificationBadge'
 import { generateDeepExplanation } from '../lib/deepMoveExplanation'
 
@@ -82,7 +82,7 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
         style={{
           background: 'var(--bg-panel)',
           border: '1px solid var(--border-subtle)',
-          minHeight: explanationMode === 'depth' ? '210px' : '135px'
+          minHeight: explanationMode === 'depth' ? '160px' : '135px'
         }}
       >
         <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
@@ -169,7 +169,7 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
       style={{
         background: 'var(--bg-panel)',
         border: '1px solid var(--border-subtle)',
-        minHeight: explanationMode === 'depth' ? '210px' : '135px'
+        minHeight: explanationMode === 'depth' ? '160px' : '135px'
       }}
     >
       {/* Classification & Mode Header Bar */}
@@ -228,113 +228,93 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
 
       {/* Mode 1: In-Depth Coach View */}
       {explanationMode === 'depth' && deep && (
-        <div className="px-4 py-3 space-y-3">
+        <div className="px-3.5 py-2.5 flex-1 flex flex-col justify-between space-y-2">
           {/* Tactical headline & role */}
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <span
-                className="text-[10px] uppercase font-mono font-semibold px-1.5 py-0.5 rounded tracking-wide"
+                className="text-[10px] uppercase font-mono font-semibold px-1.5 py-0.5 rounded tracking-wide shrink-0"
                 style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
               >
                 {deep.tacticalRole}
               </span>
-              {currentMove.moveAccuracy !== undefined && (
-                <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>
-                  Acc: <strong style={{ color: 'var(--text)' }}>{Math.round(currentMove.moveAccuracy)}%</strong>
-                </span>
-              )}
+              <h4 className="text-xs font-semibold leading-tight truncate" style={{ color: 'var(--text)' }} title={deep.headline}>
+                {deep.headline}
+              </h4>
             </div>
-            <h4 className="text-sm font-semibold leading-snug" style={{ color: 'var(--text)' }}>
-              {deep.headline}
-            </h4>
+            {currentMove.moveAccuracy !== undefined && (
+              <span className="text-[11px] font-mono shrink-0" style={{ color: 'var(--text-muted)' }}>
+                Acc: <strong style={{ color: 'var(--text)' }}>{Math.round(currentMove.moveAccuracy)}%</strong>
+              </span>
+            )}
           </div>
 
           {/* Detailed Narrative */}
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2">
             {isError ? (
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: classColor }} />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: classColor }} />
             ) : (
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: classColor }} />
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: classColor }} />
             )}
             <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               {deep.explanation}
             </p>
           </div>
 
-          {/* Tactical Dynamics / Threat breakdown */}
-          <div className="space-y-1.5 pt-1">
-            {deep.threats.prevented && (
-              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <ShieldCheck className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: 'var(--text)' }}>Defense: </strong>
-                  {deep.threats.prevented}
+          {/* Tactical Dynamics / Inline chips */}
+          {(deep.threats.prevented || deep.threats.created || deep.threats.conceded) && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {deep.threats.prevented && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                >
+                  <ShieldCheck className="w-3 h-3 text-[var(--accent)]" />
+                  <span className="truncate max-w-[210px]">{deep.threats.prevented}</span>
                 </span>
-              </div>
-            )}
-
-            {deep.threats.created && (
-              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-                <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--accent)' }} />
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: 'var(--text)' }}>Offense: </strong>
-                  {deep.threats.created}
+              )}
+              {deep.threats.created && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                >
+                  <Zap className="w-3 h-3 text-[var(--accent)]" />
+                  <span className="truncate max-w-[210px]">{deep.threats.created}</span>
                 </span>
-              </div>
-            )}
-
-            {deep.threats.conceded && (
-              <div className="flex items-start gap-2 px-2.5 py-1.5 rounded text-xs" style={{ background: 'rgba(232, 120, 48, 0.1)', border: '1px solid rgba(232, 120, 48, 0.25)' }}>
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: classColor }} />
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: classColor }}>Tactical concession: </strong>
-                  {deep.threats.conceded}
+              )}
+              {deep.threats.conceded && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
+                  style={{ background: 'rgba(232, 120, 48, 0.1)', border: '1px solid rgba(232, 120, 48, 0.25)', color: classColor }}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  <span className="truncate max-w-[210px]">{deep.threats.conceded}</span>
                 </span>
-              </div>
-            )}
-          </div>
-
-          {/* Strategic Insight / Why it matters */}
-          {deep.whyItMatters && (
-            <div className="flex items-start gap-2 text-xs pt-1" style={{ color: 'var(--text-muted)' }}>
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
-              <p className="leading-relaxed">
-                <strong style={{ color: 'var(--text-secondary)' }}>Principle: </strong>
-                {deep.whyItMatters}
-              </p>
-            </div>
-          )}
-
-          {/* Better Move Comparison (when inaccuracy, mistake, or blunder) */}
-          {isError && deep.bestMoveComparison && (
-            <div className="p-2.5 rounded-md space-y-1.5 mt-2" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                    Engine Recommendation
-                  </span>
-                </div>
-                <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-panel)', color: 'var(--accent)' }}>
-                  {deep.bestMoveComparison.bestMoveSan}
-                </span>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                {deep.bestMoveComparison.whyBetter}
-              </p>
-              {deep.bestMoveComparison.evalDiffText && (
-                <div className="text-[10px] font-mono text-right" style={{ color: 'var(--text-muted)' }}>
-                  {deep.bestMoveComparison.evalDiffText}
-                </div>
               )}
             </div>
           )}
 
-          {/* Board Impact Footer */}
-          <div className="flex items-center justify-between text-[11px] pt-2" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-            <span className="truncate max-w-[200px]">{deep.boardImpact.kingSafety}</span>
+          {/* Better Move Suggestion bar (when error) */}
+          {isError && deep.bestMoveComparison && (
+            <div className="flex items-center justify-between px-2.5 py-1 rounded text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <ArrowRight className="w-3 h-3 shrink-0" style={{ color: 'var(--accent)' }} />
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Better:</span>
+                <span className="font-mono text-xs font-bold shrink-0" style={{ color: 'var(--accent)' }}>
+                  {deep.bestMoveComparison.bestMoveSan}
+                </span>
+                <span className="text-[11px] truncate opacity-80" style={{ color: 'var(--text-secondary)' }}>
+                  — {deep.bestMoveComparison.whyBetter}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Compact Board Impact / Principle Footer */}
+          <div className="flex items-center justify-between text-[11px] pt-1" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <span className="truncate max-w-[320px]">{deep.whyItMatters}</span>
             {deep.boardImpact.keySquaresControlled.length > 0 && (
-              <div className="flex items-center gap-1 font-mono">
+              <div className="flex items-center gap-1 font-mono shrink-0">
                 <span>Center:</span>
                 {deep.boardImpact.keySquaresControlled.map((sq) => (
                   <span key={sq} className="px-1 py-0.2 rounded" style={{ background: 'var(--bg-elevated)', color: 'var(--text)' }}>
