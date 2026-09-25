@@ -1,4 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from 'react'
+import { Chess, type Square } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
 import type { Arrow } from 'react-chessboard'
 import { useTheme } from '../lib/ThemeContext'
@@ -61,6 +62,8 @@ export const Board: React.FC<BoardProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const [boardSize, setBoardSize] = useState(0)
   const [userSquareHighlights, setUserSquareHighlights] = useState<Record<string, string>>({})
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
+  const lastClickTimeRef = useRef<{ square: string; time: number }>({ square: '', time: 0 })
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -74,12 +77,24 @@ export const Board: React.FC<BoardProps> = ({
     return () => observer.disconnect()
   }, [])
 
-  // Reset user highlights on position change
+  // Reset user highlights & selection on position change
   const [prevFen, setPrevFen] = useState(fen)
   if (prevFen !== fen) {
     setPrevFen(fen)
     setUserSquareHighlights({})
+    setSelectedSquare(null)
   }
+
+  // Calculate legal moves for selected piece
+  const legalMovesFromSelected = useMemo(() => {
+    if (!selectedSquare || !allowDragging || !onMakeMove) return []
+    try {
+      const chess = new Chess(fen)
+      return chess.moves({ square: selectedSquare as Square, verbose: true })
+    } catch {
+      return []
+    }
+  }, [fen, selectedSquare, allowDragging, onMakeMove])
 
   const arrows = useMemo(() => {
     const list: Arrow[] = []
@@ -125,8 +140,41 @@ export const Board: React.FC<BoardProps> = ({
       }
     }
 
+    // Selected piece highlight
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        ...styles[selectedSquare],
+        backgroundColor: 'rgba(129, 182, 76, 0.45)',
+        boxShadow: 'inset 0 0 0 2.5px var(--accent)'
+      }
+    }
+
+    // Legal move indicators (centered dots for empty squares, outer rings for captures)
+    for (const move of legalMovesFromSelected) {
+      const isCapture = Boolean(move.captured || move.flags.includes('c') || move.flags.includes('e'))
+      const baseColor = styles[move.to]?.backgroundColor ? `${styles[move.to]?.backgroundColor}` : undefined
+
+      if (isCapture) {
+        styles[move.to] = {
+          ...styles[move.to],
+          background: baseColor
+            ? `radial-gradient(circle, transparent 52%, rgba(129, 182, 76, 0.85) 54%, rgba(129, 182, 76, 0.85) 68%, transparent 70%), ${baseColor}`
+            : 'radial-gradient(circle, transparent 52%, rgba(129, 182, 76, 0.85) 54%, rgba(129, 182, 76, 0.85) 68%, transparent 70%)',
+          cursor: 'pointer'
+        }
+      } else {
+        styles[move.to] = {
+          ...styles[move.to],
+          background: baseColor
+            ? `radial-gradient(circle, rgba(129, 182, 76, 0.85) 22%, transparent 23%), ${baseColor}`
+            : 'radial-gradient(circle, rgba(129, 182, 76, 0.85) 22%, transparent 23%)',
+          cursor: 'pointer'
+        }
+      }
+    }
+
     return styles
-  }, [lastMove, boardTheme, kingInCheckSquare, userSquareHighlights])
+  }, [lastMove, boardTheme, kingInCheckSquare, userSquareHighlights, selectedSquare, legalMovesFromSelected])
 
   // Badge overlay data
   const badge = useMemo(() => {
@@ -138,6 +186,65 @@ export const Board: React.FC<BoardProps> = ({
     if (!badge || boardSize === 0) return null
     return squareToPixel(badge.square, orientation, boardSize)
   }, [badge, orientation, boardSize])
+
+  const handleSquareClick = (square: string) => {
+    setUserSquareHighlights({})
+
+    if (!allowDragging || !onMakeMove) {
+      setSelectedSquare(null)
+      return
+    }
+
+    const now = Date.now()
+    if (lastClickTimeRef.current.square === square && now - lastClickTimeRef.current.time < 80) {
+      return
+    }
+    lastClickTimeRef.current = { square, time: now }
+
+    // If a piece is already selected:
+    if (selectedSquare) {
+      // Check if clicked square is a legal destination
+      const isLegalTarget = legalMovesFromSelected.some((m) => m.to === square)
+      if (isLegalTarget) {
+        onMakeMove(selectedSquare, square)
+        setSelectedSquare(null)
+        return
+      }
+
+      // Clicking the same square deselects it
+      if (selectedSquare === square) {
+        setSelectedSquare(null)
+        return
+      }
+
+      // Check if clicking another piece of the current turn
+      try {
+        const chess = new Chess(fen)
+        const pieceOnSquare = chess.get(square as Square)
+        if (pieceOnSquare && pieceOnSquare.color === chess.turn()) {
+          setSelectedSquare(square)
+          return
+        }
+      } catch {
+        // fallback
+      }
+
+      // Clicked anywhere else -> deselect
+      setSelectedSquare(null)
+      return
+    }
+
+    // No piece selected yet: check if clicking a piece belonging to the active player
+    try {
+      const chess = new Chess(fen)
+      const piece = chess.get(square as Square)
+      if (piece && piece.color === chess.turn()) {
+        setSelectedSquare(square)
+      }
+    } catch {
+      setSelectedSquare(null)
+    }
+  }
 
   return (
     <div
@@ -177,11 +284,21 @@ export const Board: React.FC<BoardProps> = ({
           squareStyles,
           allowDrawingArrows: true,
           clearArrowsOnClick: false,
+          onPieceDrag: ({ square }) => {
+            if (allowDragging && onMakeMove && square) {
+              setSelectedSquare(square)
+            }
+          },
+          onPieceDragCancel: () => {
+            setSelectedSquare(null)
+          },
           onPieceDrop: ({ sourceSquare, targetSquare }) => {
+            setSelectedSquare(null)
             if (!targetSquare || !onMakeMove) return false
             return onMakeMove(sourceSquare, targetSquare)
           },
           onSquareRightClick: ({ square }) => {
+            setSelectedSquare(null)
             setUserSquareHighlights((prev) => {
               const next = { ...prev }
               if (next[square]) {
@@ -192,8 +309,11 @@ export const Board: React.FC<BoardProps> = ({
               return next
             })
           },
-          onSquareClick: () => {
-            setUserSquareHighlights({})
+          onSquareClick: ({ square }) => {
+            if (square) handleSquareClick(square)
+          },
+          onPieceClick: ({ square }) => {
+            if (square) handleSquareClick(square)
           }
         }}
       />
