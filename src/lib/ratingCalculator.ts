@@ -1,6 +1,12 @@
 import type { ParsedMove } from './pgnParser'
 import { aggregateGameAccuracy } from '../engine/classifyMove'
 
+export interface PhaseAccuracy {
+  opening: number
+  middlegame: number
+  endgame?: number
+}
+
 export interface PlayerGameReport {
   playerColor: 'w' | 'b'
   username: string
@@ -8,6 +14,7 @@ export interface PlayerGameReport {
   gameRating: number // estimated performance Elo (e.g. 1050)
   accuracy: number // e.g. 91.2
   acpl: number
+  phases: PhaseAccuracy
   brilliantCount: number
   greatCount: number
   bestCount: number
@@ -110,6 +117,18 @@ export function computePerformanceRating(accuracy: number, _acpl: number, baseEl
   return Math.max(300, Math.min(3100, Math.round(est / 25) * 25))
 }
 
+export function calcPhaseAccuracies(moves: ParsedMove[]): PhaseAccuracy {
+  const openingMoves = moves.filter((m) => m.moveNumber <= 10)
+  const middleMoves = moves.filter((m) => m.moveNumber > 10 && m.moveNumber <= 30)
+  const endMoves = moves.filter((m) => m.moveNumber > 30)
+
+  return {
+    opening: openingMoves.length > 0 ? Math.round(calcCapsAccuracy(openingMoves)) : 100,
+    middlegame: middleMoves.length > 0 ? Math.round(calcCapsAccuracy(middleMoves)) : (openingMoves.length > 0 ? Math.round(calcCapsAccuracy(openingMoves)) : 100),
+    endgame: endMoves.length > 0 ? Math.round(calcCapsAccuracy(endMoves)) : undefined
+  }
+}
+
 export function generateGameReviewReport(
   moves: ParsedMove[],
   whitePlayer: string,
@@ -138,6 +157,7 @@ export function generateGameReviewReport(
     gameRating: computePerformanceRating(whiteAcc, whiteAcpl, whiteElo),
     accuracy: whiteAcc,
     acpl: whiteAcpl,
+    phases: calcPhaseAccuracies(whiteMoves),
     brilliantCount: countMoves(whiteMoves, 'brilliant'),
     greatCount: countMoves(whiteMoves, 'great') + countMoves(whiteMoves, 'excellent'),
     bestCount: countMoves(whiteMoves, 'best'),
@@ -155,6 +175,7 @@ export function generateGameReviewReport(
     gameRating: computePerformanceRating(blackAcc, blackAcpl, blackElo),
     accuracy: blackAcc,
     acpl: blackAcpl,
+    phases: calcPhaseAccuracies(blackMoves),
     brilliantCount: countMoves(blackMoves, 'brilliant'),
     greatCount: countMoves(blackMoves, 'great') + countMoves(blackMoves, 'excellent'),
     bestCount: countMoves(blackMoves, 'best'),

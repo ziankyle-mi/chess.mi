@@ -4,6 +4,7 @@ import type { CapturedPieces } from '../lib/chessUtils'
 interface PlayerCardProps {
   name: string
   elo?: string
+  performanceRating?: number
   side: 'White' | 'Black'
   captured: CapturedPieces
   materialAdvantage: number // > 0 means this player is up
@@ -31,6 +32,7 @@ const WHITE_PIECE_SYMBOLS: Record<keyof CapturedPieces, string> = {
 export const PlayerCard: React.FC<PlayerCardProps> = ({
   name,
   elo,
+  performanceRating,
   side,
   captured,
   materialAdvantage,
@@ -91,6 +93,15 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
               style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
             >
               {elo}
+            </span>
+          )}
+          {performanceRating && (
+            <span
+              className="text-[10px] font-mono shrink-0 px-1.5 py-0.2 rounded font-semibold tracking-tight"
+              style={{ background: 'var(--bg-elevated)', color: 'var(--accent)', border: '1px solid var(--border-subtle)' }}
+              title={`Estimated Performance Rating: ${performanceRating}`}
+            >
+              {performanceRating} perf
             </span>
           )}
           {inCheck && isTurn && (

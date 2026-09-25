@@ -175,15 +175,24 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
               <span className="text-xs font-semibold truncate w-full" style={{ color: 'var(--text)' }}>
                 {whitePlayer}
               </span>
-              <div
-                className="w-7 h-7 rounded flex items-center justify-center font-bold text-xs"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)'
-                }}
-              >
-                {whiteInitial}
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-7 h-7 rounded flex items-center justify-center font-bold text-xs shrink-0"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)'
+                  }}
+                >
+                  {whiteInitial}
+                </div>
+                <span
+                  className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0"
+                  style={{ background: 'var(--bg-elevated)', color: 'var(--accent)', border: '1px solid var(--border-subtle)' }}
+                  title="Estimated performance based on play precision"
+                >
+                  Played like {report.white.gameRating}
+                </span>
               </div>
             </div>
 
@@ -196,15 +205,24 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
               <span className="text-xs font-semibold truncate w-full" style={{ color: 'var(--text)' }}>
                 {blackPlayer}
               </span>
-              <div
-                className="w-7 h-7 rounded flex items-center justify-center font-bold text-xs"
-                style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text)'
-                }}
-              >
-                {blackInitial}
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded shrink-0"
+                  style={{ background: 'var(--bg-elevated)', color: 'var(--accent)', border: '1px solid var(--border-subtle)' }}
+                  title="Estimated performance based on play precision"
+                >
+                  Played like {report.black.gameRating}
+                </span>
+                <div
+                  className="w-7 h-7 rounded flex items-center justify-center font-bold text-xs shrink-0"
+                  style={{
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)'
+                  }}
+                >
+                  {blackInitial}
+                </div>
               </div>
             </div>
           </div>
@@ -227,6 +245,31 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
               <span className="font-mono text-3xl sm:text-4xl font-black tracking-tighter" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.black.accuracy.toFixed(1)}
               </span>
+            </div>
+          </div>
+
+          {/* Phase Accuracy — Opening / Middlegame / Endgame */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center text-xs py-1.5 px-3 rounded-md" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}>
+            <div className="flex items-center justify-center gap-2 font-mono text-xs">
+              <span title="Opening phase accuracy">{report.white.phases.opening}%</span>
+              <span className="opacity-30">·</span>
+              <span title="Middlegame phase accuracy">{report.white.phases.middlegame}%</span>
+              <span className="opacity-30">·</span>
+              <span title="Endgame phase accuracy">{report.white.phases.endgame !== undefined ? `${report.white.phases.endgame}%` : '—'}</span>
+            </div>
+
+            <div className="text-center px-2">
+              <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+                Open · Mid · End
+              </span>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 font-mono text-xs">
+              <span title="Opening phase accuracy">{report.black.phases.opening}%</span>
+              <span className="opacity-30">·</span>
+              <span title="Middlegame phase accuracy">{report.black.phases.middlegame}%</span>
+              <span className="opacity-30">·</span>
+              <span title="Endgame phase accuracy">{report.black.phases.endgame !== undefined ? `${report.black.phases.endgame}%` : '—'}</span>
             </div>
           </div>
 
@@ -292,21 +335,27 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
           {/* Game Rating — secondary to Accuracy, but still prominent */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-center pt-1" style={{ borderTop: '1px solid var(--border-subtle)' }}>
             <div className="text-center">
-              <span className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
+              <div className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--accent)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.white.gameRating}
-              </span>
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                {whiteElo ? `${report.white.gameRating >= whiteElo ? '+' : ''}${report.white.gameRating - whiteElo} vs Elo` : 'Est. Performance'}
+              </div>
             </div>
 
             <div className="text-center px-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
-                Game Rating
+                Performance
               </span>
             </div>
 
             <div className="text-center">
-              <span className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--text)', fontFeatureSettings: '"tnum" 1' }}>
+              <div className="font-mono text-xl font-bold tracking-tight" style={{ color: 'var(--accent)', fontFeatureSettings: '"tnum" 1' }}>
                 {report.black.gameRating}
-              </span>
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                {blackElo ? `${report.black.gameRating >= blackElo ? '+' : ''}${report.black.gameRating - blackElo} vs Elo` : 'Est. Performance'}
+              </div>
             </div>
           </div>
           </div>

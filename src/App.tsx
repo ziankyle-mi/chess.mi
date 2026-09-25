@@ -24,6 +24,7 @@ import { StudyNext } from './components/StudyNext'
 import { ThemePicker } from './components/ThemePicker'
 import { PlayerCard } from './components/PlayerCard'
 import { GameReviewReport } from './components/GameReviewReport'
+import { generateGameReviewReport } from './lib/ratingCalculator'
 import { computeMaterialAndCaptures } from './lib/chessUtils'
 import { playMoveAudio } from './lib/sounds'
 import { BarChart2, Compass, Download, CheckCircle2, Cpu, Swords, Volume2, VolumeX, Undo2, Award } from 'lucide-react'
@@ -56,6 +57,17 @@ function AppInner() {
     testMoveSan: string
     testMoveParsed?: ParsedMove
   } | null>(null)
+
+  const reviewReport = useMemo(() => {
+    return generateGameReviewReport(
+      game.moves,
+      game.metadata.white,
+      game.metadata.black,
+      game.metadata.whiteElo ? parseInt(game.metadata.whiteElo, 10) : undefined,
+      game.metadata.blackElo ? parseInt(game.metadata.blackElo, 10) : undefined,
+      game.openingName
+    )
+  }, [game])
 
   useEffect(() => {
     const list = getStoredGames()
@@ -562,6 +574,7 @@ function AppInner() {
               <PlayerCard
                 name={isFlipped ? game.metadata.white : game.metadata.black}
                 elo={isFlipped ? game.metadata.whiteElo : game.metadata.blackElo}
+                performanceRating={isFlipped ? reviewReport.white.gameRating : reviewReport.black.gameRating}
                 side={isFlipped ? 'White' : 'Black'}
                 captured={isFlipped ? material.whiteCaptured : material.blackCaptured}
                 materialAdvantage={isFlipped ? Math.max(0, material.materialDiff) : Math.max(0, -material.materialDiff)}
@@ -616,6 +629,7 @@ function AppInner() {
               <PlayerCard
                 name={isFlipped ? game.metadata.black : game.metadata.white}
                 elo={isFlipped ? game.metadata.blackElo : game.metadata.whiteElo}
+                performanceRating={isFlipped ? reviewReport.black.gameRating : reviewReport.white.gameRating}
                 side={isFlipped ? 'Black' : 'White'}
                 captured={isFlipped ? material.blackCaptured : material.whiteCaptured}
                 materialAdvantage={isFlipped ? Math.max(0, -material.materialDiff) : Math.max(0, material.materialDiff)}
