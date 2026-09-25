@@ -1,5 +1,6 @@
 import type { ParsedMove } from '../lib/pgnParser'
 import type { AnalyzedGameRecord, AggregateStats } from '../lib/progressStore'
+import { aggregateGameAccuracy } from '../engine/classifyMove'
 import { BarChart3, TrendingUp, History, Trash2 } from 'lucide-react'
 
 const CLASS_COLORS: Record<string, string> = {
@@ -52,8 +53,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const blackAcpl = calcAcpl(blackMoves)
   const calcCapsAccuracy = (moves: ParsedMove[]) => {
     if (moves.length === 0) return 0
-    const sum = moves.reduce((acc, m) => acc + (m.moveAccuracy !== undefined ? m.moveAccuracy : 75), 0)
-    return Math.round((sum / moves.length) * 10) / 10
+    const accuracies = moves.map((m) => m.moveAccuracy !== undefined ? m.moveAccuracy : 75)
+    return aggregateGameAccuracy(accuracies)
   }
   const whiteAccuracy = currentMoves.length > 0 ? calcCapsAccuracy(whiteMoves) : 0
   const blackAccuracy = currentMoves.length > 0 ? calcCapsAccuracy(blackMoves) : 0

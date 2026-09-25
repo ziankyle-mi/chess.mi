@@ -1,6 +1,6 @@
 import { parsePgn } from '../lib/pgnParser'
 import { stockfishEngine } from './stockfishWorker'
-import { classifySingleMove, isBookPosition, identifyOpening } from './classifyMove'
+import { classifySingleMove, isBookPosition, identifyOpening, aggregateGameAccuracy } from './classifyMove'
 import { evaluateStaticFen } from './simpleEvaluator'
 import type { AnalyzedGameRecord, GamePhaseData } from '../lib/progressStore'
 
@@ -91,10 +91,10 @@ export async function analyzePgnGame(
   const whiteAcpl = Math.round(whiteLossSum / whiteCount)
   const blackAcpl = Math.round(blackLossSum / blackCount)
 
-  const whiteAccSum = whiteMovesList.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-  const blackAccSum = blackMovesList.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-  const whiteAccuracy = whiteMovesList.length > 0 ? Math.round((whiteAccSum / whiteMovesList.length) * 10) / 10 : 75
-  const blackAccuracy = blackMovesList.length > 0 ? Math.round((blackAccSum / blackMovesList.length) * 10) / 10 : 75
+  const whiteAccuracies = whiteMovesList.map((m) => m.moveAccuracy ?? 75)
+  const blackAccuracies = blackMovesList.map((m) => m.moveAccuracy ?? 75)
+  const whiteAccuracy = whiteMovesList.length > 0 ? aggregateGameAccuracy(whiteAccuracies) : 75
+  const blackAccuracy = blackMovesList.length > 0 ? aggregateGameAccuracy(blackAccuracies) : 75
 
   const computePhaseData = (mList: typeof updatedMoves): GamePhaseData => {
     const op = mList.filter((m) => m.moveNumber <= 12)
@@ -103,8 +103,8 @@ export async function analyzePgnGame(
 
     const calcAcc = (arr: typeof updatedMoves) => {
       if (arr.length === 0) return 0
-      const sum = arr.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-      return Math.round((sum / arr.length) * 10) / 10
+      const accuracies = arr.map((m) => m.moveAccuracy ?? 75)
+      return aggregateGameAccuracy(accuracies)
     }
 
     return {
@@ -231,8 +231,8 @@ export function analyzeGameRecordFast(
 
   const calcMoveAcc = (list: typeof moves) => {
     if (list.length === 0) return 75
-    const sum = list.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-    return Math.round((sum / list.length) * 10) / 10
+    const accuracies = list.map((m) => m.moveAccuracy ?? 75)
+    return aggregateGameAccuracy(accuracies)
   }
 
   const whiteAccuracy = externalAccuracies?.white !== undefined
@@ -250,8 +250,8 @@ export function analyzeGameRecordFast(
 
     const calcPhaseAcc = (arr: typeof moves) => {
       if (arr.length === 0) return 0
-      const sum = arr.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-      return Math.round((sum / arr.length) * 10) / 10
+      const accuracies = arr.map((m) => m.moveAccuracy ?? 75)
+      return aggregateGameAccuracy(accuracies)
     }
 
     return {

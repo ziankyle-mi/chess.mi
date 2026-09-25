@@ -32,29 +32,68 @@ export function isBookPosition(fen: string): boolean {
 }
 
 /**
- * Standard Chess.com / Lichess win probability function from centipawns:
- * Win% = 100 / (1 + e^(-0.00368208 * cp))
+ * STEP 1 — Convert position centipawn eval to win percentage (0 to 100%):
+ * winPercent = 50 + 50 * (2 / (1 + exp(-0.00368208 * centipawns)) - 1)
+ * Clamps centipawns to [-1000, 1000] so mate evals don't distort the sigmoid curve.
  */
-export function cpToWinProb(cp: number): number {
-  return 100 / (1 + Math.exp(-0.00368208 * cp))
+export function cpToWinPercent(centipawns: number): number {
+  const clampedCp = Math.max(-1000, Math.min(1000, centipawns))
+  return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * clampedCp)) - 1)
 }
 
 /**
- * Calculates win percentage drop (0 to 100%) experienced by the player who moved.
+ * Backward compatibility alias
  */
-export function calcWinProbLoss(evalBefore: number, evalAfter: number, color: 'w' | 'b'): number {
-  const winBefore = color === 'w' ? cpToWinProb(evalBefore) : 100 - cpToWinProb(evalBefore)
-  const winAfter = color === 'w' ? cpToWinProb(evalAfter) : 100 - cpToWinProb(evalAfter)
+export const cpToWinProb = cpToWinPercent
+
+/**
+ * STEP 2 — Calculate how much win percentage was lost:
+ * winPercentLoss = winPercentBefore - winPercentAfter
+ * (from the perspective of the player who just moved; if negative, clamp to 0)
+ */
+export function calcWinPercentLoss(evalBefore: number, evalAfter: number, color: 'w' | 'b'): number {
+  const winBefore = color === 'w' ? cpToWinPercent(evalBefore) : 100 - cpToWinPercent(evalBefore)
+  const winAfter = color === 'w' ? cpToWinPercent(evalAfter) : 100 - cpToWinPercent(evalAfter)
   return Math.max(0, winBefore - winAfter)
 }
 
 /**
- * Chess.com CAPS2 move accuracy formula:
- * Accuracy = 103.1668 * e^(-0.04354 * winLoss) - 3.1669
+ * Backward compatibility alias
  */
-export function winLossToMoveAccuracy(winLoss: number): number {
-  const acc = 103.1668 * Math.exp(-0.04354 * winLoss) - 3.1669
-  return Math.min(100, Math.max(0, Math.round(acc * 10) / 10))
+export const calcWinProbLoss = calcWinPercentLoss
+
+/**
+ * STEP 3 — Convert per-move loss into a per-move accuracy score:
+ * moveAccuracy = 103.1668 * exp(-0.04354 * winPercentLoss) - 3.1669
+ * Clamped between 0 and 100.
+ */
+export function winLossToMoveAccuracy(winPercentLoss: number): number {
+  const clampedLoss = Math.max(0, winPercentLoss)
+  const raw = 103.1668 * Math.exp(-0.04354 * clampedLoss) - 3.1669
+  return Math.min(100, Math.max(0, Math.round(raw * 10) / 10))
+}
+
+/**
+ * STEP 4 — Aggregate per-move accuracy into one game accuracy score:
+ * Combines plain average with harmonic mean: (arithmeticMean + harmonicMean) / 2
+ * This accounts for consistency and punishes low outliers (blunders/mistakes)
+ * so that single game-losing mistakes are not buried by a quiet rest of the game.
+ */
+export function aggregateGameAccuracy(moveAccuracies: number[]): number {
+  if (moveAccuracies.length === 0) return 100
+
+  // 1. Plain arithmetic average
+  const sum = moveAccuracies.reduce((acc, a) => acc + a, 0)
+  const arithmeticMean = sum / moveAccuracies.length
+
+  // 2. Harmonic mean: N / sum(1 / max(1, a_i))
+  // Clamped to at least 1 to avoid division by zero
+  const harmonicDenominator = moveAccuracies.reduce((denom, a) => denom + (1 / Math.max(1, a)), 0)
+  const harmonicMean = harmonicDenominator > 0 ? moveAccuracies.length / harmonicDenominator : arithmeticMean
+
+  // 3. Balanced combination punishing outliers
+  const combined = (arithmeticMean + harmonicMean) / 2
+  return Math.min(100, Math.max(0, Math.round(combined * 10) / 10))
 }
 
 export function classifySingleMove(
@@ -92,8 +131,10 @@ export function classifySingleMove(
   const rawLoss = move.color === 'w' ? evalBefore - evalAfter : evalAfter - evalBefore
   const evalLoss = Math.max(0, rawLoss)
 
-  // Win probability loss (Chess.com CAPS metric)
-  const winLoss = calcWinProbLoss(evalBefore, evalAfter, move.color)
+  // STEP 2: Win percentage lost (0% to 100%)
+  const winLoss = calcWinPercentLoss(evalBefore, evalAfter, move.color)
+
+  // STEP 3: Per-move accuracy calculated directly from winPercentLoss
   let moveAccuracy = winLossToMoveAccuracy(winLoss)
 
   const playedLan = move.lan.toLowerCase()
@@ -101,44 +142,37 @@ export function classifySingleMove(
 
   let classification: MoveClassification = 'good'
 
-  // Win probability thresholds calibrated to Chess.com
+  // Consistent classification thresholds strictly derived from winPercentLoss:
   if (isBook && move.moveNumber <= 12) {
     classification = 'book'
     moveAccuracy = 100
   } else if (engineLan && playedLan === engineLan) {
     classification = 'best'
     moveAccuracy = 100
-  } else if (winLoss <= 1.5) {
+  } else if (winLoss <= 0.5) {
     classification = 'best'
-    moveAccuracy = Math.max(98, moveAccuracy)
-  } else if (winLoss <= 4.0) {
+    moveAccuracy = 100
+  } else if (winLoss <= 2.0) {
     classification = 'great'
-    moveAccuracy = Math.max(95, moveAccuracy)
-  } else if (winLoss <= 9.0) {
+  } else if (winLoss <= 5.0) {
     classification = 'good'
-    moveAccuracy = Math.max(88, moveAccuracy)
-  } else if (winLoss <= 18.0) {
+  } else if (winLoss <= 12.0) {
     classification = 'inaccuracy'
-    moveAccuracy = Math.min(84, Math.max(65, moveAccuracy))
-  } else if (winLoss <= 32.0) {
-    // If player had a winning advantage and failed to find the tactic:
+  } else if (winLoss <= 25.0) {
+    // If player had a decisive winning advantage and failed to find the tactic:
     const playerEvalBefore = move.color === 'w' ? evalBefore : -evalBefore
-    if (playerEvalBefore >= 180) {
+    if (playerEvalBefore >= 200) {
       classification = 'miss'
-      moveAccuracy = Math.min(45, Math.max(25, moveAccuracy))
     } else {
       classification = 'mistake'
-      moveAccuracy = Math.min(60, Math.max(35, moveAccuracy))
     }
   } else {
     classification = 'blunder'
-    moveAccuracy = Math.min(30, Math.max(5, moveAccuracy))
   }
 
-  // Critical moment detection:
-  // Decisive swing (winLoss >= 25%) or sign flip across equality
+  // Critical moment detection: decisive win swing or sign flip across equality
   const isCritical =
-    winLoss >= 22 ||
+    winLoss >= 20 ||
     (evalBefore > 120 && evalAfter < -80) ||
     (evalBefore < -120 && evalAfter > 80)
 

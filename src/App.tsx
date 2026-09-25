@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Chess } from 'chess.js'
 import { parsePgn, SAMPLE_GAMES, type ParsedGame } from './lib/pgnParser'
 import { stockfishEngine } from './engine/stockfishWorker'
-import { classifySingleMove, identifyOpening, isBookPosition } from './engine/classifyMove'
+import { classifySingleMove, identifyOpening, isBookPosition, aggregateGameAccuracy } from './engine/classifyMove'
 import {
   getStoredGames,
   saveAnalyzedGame,
@@ -162,11 +162,11 @@ function AppInner() {
     const whiteAcpl = Math.round(whiteLossSum / whiteCount)
     const blackAcpl = Math.round(blackLossSum / blackCount)
 
-    // Accurate Chess.com CAPS2 game accuracy: average of single-move accuracies
-    const whiteAccSum = whiteMovesList.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-    const blackAccSum = blackMovesList.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-    const whiteAccuracy = whiteMovesList.length > 0 ? Math.round((whiteAccSum / whiteMovesList.length) * 10) / 10 : 75
-    const blackAccuracy = blackMovesList.length > 0 ? Math.round((blackAccSum / blackMovesList.length) * 10) / 10 : 75
+    // Accurate game accuracy: harmonic-weighted aggregate of move accuracies
+    const whiteAccuracies = whiteMovesList.map((m) => m.moveAccuracy ?? 75)
+    const blackAccuracies = blackMovesList.map((m) => m.moveAccuracy ?? 75)
+    const whiteAccuracy = whiteMovesList.length > 0 ? aggregateGameAccuracy(whiteAccuracies) : 75
+    const blackAccuracy = blackMovesList.length > 0 ? aggregateGameAccuracy(blackAccuracies) : 75
 
     const computePhaseData = (mList: typeof updatedMoves) => {
       const op = mList.filter((m) => m.moveNumber <= 12)
@@ -175,8 +175,8 @@ function AppInner() {
 
       const calcAcc = (arr: typeof updatedMoves) => {
         if (arr.length === 0) return 0
-        const sum = arr.reduce((acc, m) => acc + (m.moveAccuracy ?? 75), 0)
-        return Math.round((sum / arr.length) * 10) / 10
+        const accuracies = arr.map((m) => m.moveAccuracy ?? 75)
+        return aggregateGameAccuracy(accuracies)
       }
 
       return {

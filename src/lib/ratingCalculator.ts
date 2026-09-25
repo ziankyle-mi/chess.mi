@@ -1,4 +1,5 @@
 import type { ParsedMove } from './pgnParser'
+import { aggregateGameAccuracy } from '../engine/classifyMove'
 
 export interface PlayerGameReport {
   playerColor: 'w' | 'b'
@@ -43,21 +44,22 @@ function calcAcpl(moves: ParsedMove[]): number {
 }
 
 /**
- * Standard classification accuracy mappings matching Chess.com CAPS2
+ * Standard classification accuracy mappings matching the Step 3 curve:
+ * moveAccuracy = 103.1668 * exp(-0.04354 * winPercentLoss) - 3.1669
  */
 export function getAccuracyForClassification(cls?: string): number {
   switch (cls) {
     case 'book': return 100
     case 'best': return 100
     case 'brilliant': return 100
-    case 'great': return 96
-    case 'excellent': return 94
-    case 'good': return 88
-    case 'inaccuracy': return 75
-    case 'mistake': return 50
+    case 'great': return 95
+    case 'excellent': return 90
+    case 'good': return 82
+    case 'inaccuracy': return 65
+    case 'mistake': return 45
     case 'miss': return 35
-    case 'blunder': return 20
-    default: return 80
+    case 'blunder': return 15
+    default: return 75
   }
 }
 
@@ -68,19 +70,21 @@ export function getAccuracyForMove(move: ParsedMove): number {
   if (move.classification === 'best' || move.classification === 'book' || move.classification === 'brilliant') {
     return 100
   }
-  if (typeof move.moveAccuracy === 'number' && move.moveAccuracy > 0) {
+  if (typeof move.moveAccuracy === 'number' && move.moveAccuracy >= 0) {
     return move.moveAccuracy
   }
   return getAccuracyForClassification(move.classification)
 }
 
 /**
- * Calculates CAPS2 game accuracy: direct average of move accuracies.
+ * Calculates game accuracy using STEP 4:
+ * Combines arithmetic mean with harmonic mean: (arithmeticMean + harmonicMean) / 2
+ * Punishes low outliers so single blunders cannot hide behind quiet moves.
  */
 export function calcCapsAccuracy(moves: ParsedMove[]): number {
-  if (moves.length === 0) return 75
-  const sum = moves.reduce((acc, m) => acc + getAccuracyForMove(m), 0)
-  return Math.min(100, Math.max(5, Math.round((sum / moves.length) * 10) / 10))
+  if (moves.length === 0) return 100
+  const accuracies = moves.map((m) => getAccuracyForMove(m))
+  return aggregateGameAccuracy(accuracies)
 }
 
 export function computePerformanceRating(accuracy: number, _acpl: number, baseElo?: number): number {
