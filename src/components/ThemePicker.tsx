@@ -34,7 +34,7 @@ export const ThemePicker: React.FC = () => {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div
-            className="absolute right-0 top-full mt-2 z-50 rounded-lg shadow-xl p-4 w-[280px]"
+            className="absolute right-0 top-full mt-2 z-50 rounded-lg shadow-xl p-4 w-[290px]"
             style={{
               background: 'var(--bg-panel)',
               border: '1px solid var(--border)',
@@ -51,7 +51,7 @@ export const ThemePicker: React.FC = () => {
                   <button
                     key={theme.id}
                     onClick={() => setBoardTheme(theme)}
-                    className="relative flex flex-col items-center gap-1 group"
+                    className="relative flex flex-col items-center gap-1 group cursor-pointer"
                     title={theme.name}
                   >
                     <div
@@ -84,22 +84,26 @@ export const ThemePicker: React.FC = () => {
               <span className="text-[11px] font-semibold uppercase tracking-wider block mb-2" style={{ color: 'var(--text-muted)' }}>
                 Interface
               </span>
-              <div className="flex gap-2">
-                {APP_THEMES.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => setAppTheme(theme)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all"
-                    style={{
-                      background: appTheme.id === theme.id ? 'var(--accent)' : 'var(--bg-elevated)',
-                      color: appTheme.id === theme.id ? 'var(--accent-text)' : 'var(--text-secondary)',
-                      border: appTheme.id === theme.id ? 'none' : '1px solid var(--border-subtle)'
-                    }}
-                  >
-                    {appThemeIcons[theme.id]}
-                    {theme.name}
-                  </button>
-                ))}
+              <div className="grid grid-cols-3 gap-1.5">
+                {APP_THEMES.map((theme) => {
+                  const isActive = appTheme.id === theme.id
+                  return (
+                    <button
+                      key={theme.id}
+                      onClick={() => setAppTheme(theme)}
+                      className="flex items-center justify-center gap-1.5 py-2 px-1 rounded-md text-xs font-medium transition-all cursor-pointer whitespace-nowrap"
+                      style={{
+                        background: isActive ? 'var(--accent)' : 'var(--bg-elevated)',
+                        color: isActive ? 'var(--accent-text)' : 'var(--text-secondary)',
+                        border: isActive ? '1px solid var(--accent)' : '1px solid var(--border-subtle)',
+                        boxShadow: isActive ? '0 2px 8px rgba(129, 182, 76, 0.25)' : 'none'
+                      }}
+                    >
+                      {appThemeIcons[theme.id]}
+                      <span>{theme.name}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </div>
