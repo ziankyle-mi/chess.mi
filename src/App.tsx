@@ -770,9 +770,8 @@ function AppInner() {
           </div>
         )}
       </main>
-      <footer className="py-2 text-center text-[11px] font-mono text-[var(--text-muted)] select-none border-t border-[var(--border-subtle)] mt-auto">
-        <span>chess.mi · created by </span>
-        <span className="text-[var(--text-secondary)] font-medium">ziankyle.mi</span>
+      <footer className="py-2 text-center text-[11px] font-mono text-[var(--text-muted)] select-none mt-auto">
+        ziankyle.mi
       </footer>
     </div>
   )
