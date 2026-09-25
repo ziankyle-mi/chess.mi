@@ -4,9 +4,9 @@ import {
   Target,
   User,
   Sparkles,
-  TrendingUp,
-  CheckCircle2,
-  AlertTriangle,
+  ShieldCheck,
+  Crosshair,
+  Check,
   BookOpen,
   Swords,
   Crown,
@@ -231,20 +231,13 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-[var(--text)]">{userAccount}</span>
                     <span
-                      className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                      style={{ background: '#81b64c20', color: '#81b64c', border: '1px solid #81b64c40' }}
+                      className="text-[10px] px-2 py-0.5 rounded font-mono font-medium border border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--bg-elevated)]"
                     >
-                      Active Profile
-                    </span>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded font-mono font-medium"
-                      style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-                    >
-                      FIFO 20 Window
+                      Rolling 20 FIFO
                     </span>
                   </div>
-                  <span className="text-xs text-[var(--text-muted)] mt-0.5">
-                    {userStats ? `${userStats.gamesPlayed} of 20 games tracked (Rolling 20 · FIFO)` : `${analyzedCount} total games in library`}
+                  <span className="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
+                    {userStats ? `${userStats.gamesPlayed} of 20 games tracked` : `${analyzedCount} total games in library`}
                   </span>
                 </div>
               </div>
@@ -347,153 +340,133 @@ export const StudyNext: React.FC<StudyNextProps> = ({
         )}
       </div>
 
-      {/* Game Phase Mastery Breakdown */}
+      {/* Game Phase Performance Diagnosis */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text)]">
-            <TrendingUp className="w-4 h-4 text-[var(--accent)]" />
-            <span>Game Phase Mastery</span>
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text)]">
+            <Compass className="w-4 h-4 text-[var(--accent)]" />
+            <span>Phase Performance Diagnosis</span>
           </div>
-          <span className="text-[11px] text-[var(--text-muted)]">
+          <span className="text-[11px] text-[var(--text-muted)] font-mono">
             Opening (1–12) · Middlegame (13–30) · Endgame (31+)
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Opening Phase Card */}
-          <div
-            className="rounded-xl p-4 border flex flex-col justify-between gap-3 shadow-sm"
-            style={{
-              background: 'var(--bg-panel)',
-              borderColor: 'var(--border-subtle)'
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-[#a78bfa]" />
-                  <span className="text-xs font-bold text-[var(--text)]">Opening</span>
+          {[
+            {
+              key: 'opening' as const,
+              title: 'Opening',
+              icon: BookOpen,
+              data: userStats?.phases.opening || {
+                accuracy: 88.5,
+                blunders: 0,
+                movesCount: 240,
+                status: 'strong' as const,
+                statusLabel: 'Strongest Phase',
+                summary: 'Solid opening principles. Controls central squares and develops pieces efficiently.'
+              }
+            },
+            {
+              key: 'middlegame' as const,
+              title: 'Middlegame',
+              icon: Swords,
+              data: userStats?.phases.middlegame || {
+                accuracy: 74.2,
+                blunders: 2,
+                movesCount: 380,
+                status: 'weak' as const,
+                statusLabel: 'Primary Focus',
+                summary: 'Complex tactical skirmishes cause rating drops. Calculation slips during open trades.'
+              }
+            },
+            {
+              key: 'endgame' as const,
+              title: 'Endgame',
+              icon: Crown,
+              data: userStats?.phases.endgame || {
+                accuracy: 82.8,
+                blunders: 0,
+                movesCount: 160,
+                status: 'solid' as const,
+                statusLabel: 'Developing',
+                summary: 'Reliable conversion in simplified positions with strong king activation.'
+              }
+            }
+          ].map((phase) => {
+            const isFocus = phase.data.status === 'weak'
+            const isStrong = phase.data.status === 'strong'
+            const IconComponent = phase.icon
+
+            return (
+              <div
+                key={phase.key}
+                className={`rounded-xl p-4.5 border flex flex-col justify-between gap-3 shadow-sm transition-all ${
+                  isFocus
+                    ? 'border-l-4 border-l-[var(--accent)] bg-[var(--bg-panel)]'
+                    : 'bg-[var(--bg-panel)] border-[var(--border-subtle)]'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <IconComponent className="w-4 h-4 text-[var(--text-secondary)]" />
+                      <span className="text-xs font-bold text-[var(--text)]">{phase.title}</span>
+                    </div>
+
+                    {isStrong ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#81b64c]/10 text-[#81b64c] border border-[#81b64c]/25">
+                        <Check className="w-2.5 h-2.5" />
+                        {phase.data.statusLabel}
+                      </span>
+                    ) : isFocus ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--text)]/10 text-[var(--text)] border border-[var(--border)]">
+                        <Target className="w-2.5 h-2.5 text-[var(--accent)]" />
+                        {phase.data.statusLabel}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
+                        {phase.data.statusLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Accuracy Number — HERO per DESIGN.md */}
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="font-mono text-3xl font-black text-[var(--text)] tracking-tight" style={{ fontFeatureSettings: '"tnum" 1' }}>
+                      {phase.data.accuracy}%
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">accuracy</span>
+                  </div>
+
+                  {/* Subdued progress bar */}
+                  <div className="w-full h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden mb-2.5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isFocus ? 'bg-[var(--text-muted)]' : 'bg-[var(--accent)]'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(10, phase.data.accuracy))}%` }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                    {phase.data.summary}
+                  </p>
                 </div>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider"
-                  style={{
-                    background: userStats?.phases.opening.status === 'strong' ? '#81b64c20' : '#e6a42820',
-                    color: userStats?.phases.opening.status === 'strong' ? '#81b64c' : '#e6a428'
-                  }}
+
+                <div
+                  className={`pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] ${
+                    phase.data.blunders === 0 ? 'opacity-40 text-[var(--text-muted)]' : 'text-[var(--text-secondary)]'
+                  }`}
                 >
-                  {userStats?.phases.opening.statusLabel || 'Solid 👍'}
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-1.5">
-                <span className="font-mono text-2xl font-bold text-[var(--text)]">
-                  {userStats ? `${userStats.phases.opening.accuracy}%` : '88.5%'}
-                </span>
-                <span className="text-[11px] text-[var(--text-muted)]">accuracy</span>
-              </div>
-
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                {userStats?.phases.opening.summary || 'Sound opening principles. Controls central squares and develops pieces efficiently.'}
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-              <span>Blunders in Opening:</span>
-              <span className="font-mono font-bold text-[var(--text)]">
-                {userStats?.phases.opening.blunders ?? 0}
-              </span>
-            </div>
-          </div>
-
-          {/* Middlegame Phase Card */}
-          <div
-            className="rounded-xl p-4 border flex flex-col justify-between gap-3 shadow-sm"
-            style={{
-              background: 'var(--bg-panel)',
-              borderColor: 'var(--border-subtle)'
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <Swords className="w-4 h-4 text-[#e87830]" />
-                  <span className="text-xs font-bold text-[var(--text)]">Middlegame</span>
+                  <span>Blunders in {phase.title}:</span>
+                  <span className="font-mono font-bold text-[var(--text)]">
+                    {phase.data.blunders}
+                  </span>
                 </div>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider"
-                  style={{
-                    background: userStats?.phases.middlegame.status === 'weak' ? '#ca343120' : '#81b64c20',
-                    color: userStats?.phases.middlegame.status === 'weak' ? '#ca3431' : '#81b64c'
-                  }}
-                >
-                  {userStats?.phases.middlegame.statusLabel || 'Needs Work ⚠️'}
-                </span>
               </div>
-
-              <div className="flex items-baseline gap-2 mb-1.5">
-                <span className="font-mono text-2xl font-bold text-[var(--text)]">
-                  {userStats ? `${userStats.phases.middlegame.accuracy}%` : '74.2%'}
-                </span>
-                <span className="text-[11px] text-[var(--text-muted)]">accuracy</span>
-              </div>
-
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                {userStats?.phases.middlegame.summary || 'Complex tactical skirmishes cause rating drops. Calculation slips during open trades.'}
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-              <span>Blunders in Middlegame:</span>
-              <span className="font-mono font-bold text-[var(--text)]">
-                {userStats?.phases.middlegame.blunders ?? 2}
-              </span>
-            </div>
-          </div>
-
-          {/* Endgame Phase Card */}
-          <div
-            className="rounded-xl p-4 border flex flex-col justify-between gap-3 shadow-sm"
-            style={{
-              background: 'var(--bg-panel)',
-              borderColor: 'var(--border-subtle)'
-            }}
-          >
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <Crown className="w-4 h-4 text-[#f7c631]" />
-                  <span className="text-xs font-bold text-[var(--text)]">Endgame</span>
-                </div>
-                <span
-                  className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider"
-                  style={{
-                    background: userStats?.phases.endgame.status === 'strong' ? '#81b64c20' : '#5c8bb020',
-                    color: userStats?.phases.endgame.status === 'strong' ? '#81b64c' : '#5c8bb0'
-                  }}
-                >
-                  {userStats?.phases.endgame.statusLabel || 'Solid 👍'}
-                </span>
-              </div>
-
-              <div className="flex items-baseline gap-2 mb-1.5">
-                <span className="font-mono text-2xl font-bold text-[var(--text)]">
-                  {userStats ? `${userStats.phases.endgame.accuracy}%` : '82.8%'}
-                </span>
-                <span className="text-[11px] text-[var(--text-muted)]">accuracy</span>
-              </div>
-
-              <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                {userStats?.phases.endgame.summary || 'Reliable technical conversion in simplified positions with strong king activation.'}
-              </p>
-            </div>
-
-            <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-              <span>Blunders in Endgame:</span>
-              <span className="font-mono font-bold text-[var(--text)]">
-                {userStats?.phases.endgame.blunders ?? 0}
-              </span>
-            </div>
-          </div>
+            )
+          })}
         </div>
       </div>
 
@@ -508,20 +481,20 @@ export const StudyNext: React.FC<StudyNextProps> = ({
           }}
         >
           <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
-            <CheckCircle2 className="w-4 h-4 text-[#81b64c]" />
+            <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-              Your Strengths
+              Tactical & Strategic Strengths
             </h3>
           </div>
 
           <div className="flex flex-col gap-2.5">
             {(userStats?.strengths || [
-              'High Opening Preparation accuracy (develops minor pieces rapidly and castles early).',
-              'Consistent conversion when ahead in material (+3 advantage maintained to win).',
-              'Dominant tactical control when playing with White.'
+              'Opening Foundation (88.5% avg accuracy) — builds consistent, playable setups right out of the opening.',
+              'Endgame Composure (82.8% accuracy) — stays disciplined in simplified positions.',
+              'Initiative with White — capitalizes on first-move tempo to dictate game flow.'
             ]).map((str, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-xs leading-relaxed text-[var(--text-secondary)]">
-                <span className="text-[#81b64c] font-bold text-sm shrink-0 leading-none mt-0.5">✓</span>
+              <div key={idx} className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+                <Check className="w-3.5 h-3.5 text-[var(--accent)] shrink-0 mt-0.5" />
                 <span>{str}</span>
               </div>
             ))}
@@ -537,20 +510,20 @@ export const StudyNext: React.FC<StudyNextProps> = ({
           }}
         >
           <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
-            <AlertTriangle className="w-4 h-4 text-[#e6912c]" />
+            <Crosshair className="w-4 h-4 text-[var(--text-muted)]" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-              Primary Rating Leaks
+              Priority Rating Leaks
             </h3>
           </div>
 
           <div className="flex flex-col gap-2.5">
             {(userStats?.weaknesses || [
-              'Middlegame Calculation drops under tactical trades between moves 13–28.',
-              'Overlooking undefended minor pieces and knight fork motifs.',
-              'Defensive passivity when playing the Black pieces.'
+              'Middlegame Tactics — material lost during multi-piece exchanges between moves 13–30.',
+              'Overlooking undefended minor pieces before locking in candidate moves.',
+              'Defensive Repertoire with Black — finding counterplay against aggressive setups.'
             ]).map((leak, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-xs leading-relaxed text-[var(--text-secondary)]">
-                <span className="text-[#e6912c] font-bold text-sm shrink-0 leading-none mt-0.5">!</span>
+              <div key={idx} className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--text-secondary)]">
+                <Target className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 mt-0.5" />
                 <span>{leak}</span>
               </div>
             ))}

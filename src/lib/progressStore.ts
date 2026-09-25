@@ -260,25 +260,59 @@ export function calculateUserAccountStats(
   const midAcc = midCount > 0 ? Math.round((midAccSum / midCount) * 10) / 10 : Math.round(avgAccuracy * 0.94 * 10) / 10
   const endAcc = endCount > 0 ? Math.round((endAccSum / endCount) * 10) / 10 : Math.round(avgAccuracy * 0.98 * 10) / 10
 
-  const getStatus = (acc: number, blunders: number): { status: 'strong' | 'solid' | 'weak'; label: string } => {
-    if (acc >= 85 && blunders <= 1) return { status: 'strong', label: 'Strength 💪' }
-    if (acc >= 75) return { status: 'solid', label: 'Solid 👍' }
-    return { status: 'weak', label: 'Needs Work ⚠️' }
-  }
-
-  const opStatus = getStatus(opAcc, opBlunders)
-  const midStatus = getStatus(midAcc, midBlunders)
-  const endStatus = getStatus(endAcc, endBlunders)
-
-  // Determine strongest and weakest
+  // Determine strongest and weakest phases with realistic weighting
   const phaseScores = [
-    { name: 'Opening' as const, score: opAcc - opBlunders * 3 },
-    { name: 'Middlegame' as const, score: midAcc - midBlunders * 3 },
-    { name: 'Endgame' as const, score: endAcc - endBlunders * 3 }
+    { name: 'Opening' as const, score: opAcc - (opBlunders * 1.5) },
+    { name: 'Middlegame' as const, score: midAcc - (midBlunders * 1.5) },
+    { name: 'Endgame' as const, score: endAcc - (endBlunders * 1.5) }
   ].sort((a, b) => b.score - a.score)
 
   const strongestPhase = phaseScores[0].name
   const weakestPhase = phaseScores[phaseScores.length - 1].name
+
+  const getPhaseMeta = (
+    phaseName: 'Opening' | 'Middlegame' | 'Endgame',
+    acc: number,
+    blunders: number,
+    isStrongest: boolean,
+    isWeakest: boolean
+  ): { status: 'strong' | 'solid' | 'weak'; label: string; summary: string } => {
+    if (isStrongest) {
+      return {
+        status: 'strong',
+        label: 'Strongest Phase',
+        summary: phaseName === 'Opening'
+          ? `Solid opening fundamentals (${acc}% accuracy). Controls the center and safely navigates into the middlegame.`
+          : phaseName === 'Middlegame'
+          ? `Sharp tactical vision (${acc}% accuracy). Handles multi-piece fights and piece coordination cleanly.`
+          : `Reliable endgame conversion (${acc}% accuracy). Activates the king and creates passed pawns efficiently.`
+      }
+    }
+    if (isWeakest) {
+      return {
+        status: 'weak',
+        label: 'Primary Focus',
+        summary: phaseName === 'Opening'
+          ? `Struggles in the first 10-12 moves (${acc}% accuracy, ${blunders} blunders). Conceding early space or piece pins.`
+          : phaseName === 'Middlegame'
+          ? `Primary tactical battleground (${acc}% accuracy, ${blunders} blunders). Material is dropped during sharp piece exchanges.`
+          : `Endgame conversion needs practice (${acc}% accuracy, ${blunders} blunders). Tends to surrender leads in simplified boards.`
+      }
+    }
+    return {
+      status: 'solid',
+      label: 'Developing',
+      summary: phaseName === 'Opening'
+        ? `Decent opening setups (${acc}% accuracy). A few development delays, but generally avoids early tactical traps.`
+        : phaseName === 'Middlegame'
+        ? `Handles standard positional setups reasonably well (${acc}% accuracy), with occasional slips during complex trades.`
+        : `Steady handling of basic endgames (${acc}% accuracy), rarely throwing away games in low-material positions.`
+    }
+  }
+
+  const opStatus = getPhaseMeta('Opening', opAcc, opBlunders, strongestPhase === 'Opening', weakestPhase === 'Opening')
+  const midStatus = getPhaseMeta('Middlegame', midAcc, midBlunders, strongestPhase === 'Middlegame', weakestPhase === 'Middlegame')
+  const endStatus = getPhaseMeta('Endgame', endAcc, endBlunders, strongestPhase === 'Endgame', weakestPhase === 'Endgame')
 
   // Tactical Leaks
   const tacticalLeaks = Object.entries(userBlunderPatterns)
@@ -289,26 +323,46 @@ export function calculateUserAccountStats(
     }))
     .sort((a, b) => b.count - a.count)
 
-  // Dynamic Strengths
+  // Dynamic Strengths (genuine human chess coach assessment)
   const strengths: string[] = []
-  if (opAcc >= 85) strengths.push(`Solid Opening Preparation (${opAcc}% avg accuracy) — develops harmoniously and maintains central control.`)
-  if (endAcc >= 80) strengths.push(`Resilient Endgame Technique (${endAcc}% accuracy) — converts advantageous simplified positions with precision.`)
-  if (whiteAccuracy >= 82) strengths.push(`Dominant with White (${whiteAccuracy}% accuracy) — capitalizes on the first-move initiative.`)
-  if (winRate >= 50) strengths.push(`Strong Match Record (${winRate}% Win Rate) across tracked matches.`)
-  if (strengths.length === 0) strengths.push(`Calculates reliably in quiet, structured positions.`)
+  if (strongestPhase === 'Opening' || opAcc >= 70) {
+    strengths.push(`Opening Foundation (${opAcc}% avg accuracy) — builds consistent, playable setups right out of the opening.`)
+  }
+  if (strongestPhase === 'Endgame' || (endCount > 0 && endBlunders <= 12)) {
+    strengths.push(`Endgame Composure (${endAcc}% accuracy, ${endBlunders} blunders) — stays disciplined in simplified positions.`)
+  }
+  if (whiteAccuracy >= blackAccuracy + 4) {
+    strengths.push(`Initiative with White (${whiteAccuracy}% accuracy) — capitalizes on first-move tempo to dictate game flow.`)
+  }
+  if (winRate > 55) {
+    strengths.push(`Winning Match Record (${winRate}% Win Rate) — consistently outplaying opponents across the 20-game window.`)
+  } else if (winRate === 50) {
+    strengths.push(`Competitive Parity (50% Win Rate) — evenly matched (${wins}W - ${losses}L); tightening tactical trades will tip the scale.`)
+  } else if (wins > 0) {
+    strengths.push(`Resilient Fighting Spirit — capable of finding counter-attacks and punishing opponent overextension.`)
+  }
+  if (strengths.length === 0) {
+    strengths.push(`Patient positional play in quiet, structured positions.`)
+  }
 
-  // Dynamic Weaknesses
+  // Dynamic Rating Leaks (clear, concrete human coach diagnosis)
   const weaknesses: string[] = []
-  if (midStatus.status === 'weak' || midBlunders >= opBlunders) {
-    weaknesses.push(`Middlegame Tactical Fluctuations (${midAcc}% accuracy, ${midBlunders} blunders) — prone to calculation slips during sharp tactical trades.`)
+  if (weakestPhase === 'Middlegame') {
+    weaknesses.push(`Middlegame Tactics (${midAcc}% accuracy, ${midBlunders} blunders) — material lost during multi-piece exchanges between moves 13–30.`)
+  } else if (weakestPhase === 'Opening') {
+    weaknesses.push(`Opening Concessions (${opAcc}% accuracy, ${opBlunders} blunders) — falls behind in piece development or concedes central control before castling.`)
+  } else {
+    weaknesses.push(`Endgame Technique (${endAcc}% accuracy, ${endBlunders} blunders) — struggles to convert piece leads into winning king-and-pawn positions.`)
   }
   if (tacticalLeaks.length > 0) {
-    weaknesses.push(`Tactical Leak: ${tacticalLeaks[0].pattern} (${tacticalLeaks[0].percentage}% of blunders) — overlooking defensive threats before committing moves.`)
+    weaknesses.push(`Frequent Pattern: ${tacticalLeaks[0].pattern} (${tacticalLeaks[0].percentage}% of blunders) — remember to verify undefended pieces before moving.`)
   }
-  if (blackAccuracy < whiteAccuracy - 5) {
-    weaknesses.push(`Defensive Solidity with Black (${blackAccuracy}% vs ${whiteAccuracy}% with White) — finding active counterplay against aggressive setups.`)
+  if (blackAccuracy < whiteAccuracy - 4) {
+    weaknesses.push(`Black Repertoire (${blackAccuracy}% vs ${whiteAccuracy}% with White) — feels less comfortable playing defensively on the back foot.`)
   }
-  if (weaknesses.length === 0) weaknesses.push(`Time management in long calculation trees.`)
+  if (weaknesses.length === 0) {
+    weaknesses.push(`Occasional clock pressure leading to rushed moves in complex positions.`)
+  }
 
   // Recommended Drills
   const recommendedDrills: { title: string; category: string; description: string; priority: 'high' | 'medium' }[] = []
