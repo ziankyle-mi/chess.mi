@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Chess } from 'chess.js'
-import { parsePgn, SAMPLE_GAMES, type ParsedGame } from './lib/pgnParser'
+import { Chess, type Square } from 'chess.js'
+import { parsePgn, SAMPLE_GAMES, type ParsedGame, type ParsedMove } from './lib/pgnParser'
 import { stockfishEngine } from './engine/stockfishWorker'
 import { classifySingleMove, identifyOpening, isBookPosition, aggregateGameAccuracy } from './engine/classifyMove'
 import {
@@ -54,6 +54,7 @@ function AppInner() {
     fromFen: string
     testFen: string
     testMoveSan: string
+    testMoveParsed?: ParsedMove
   } | null>(null)
 
   useEffect(() => {
@@ -315,11 +316,30 @@ function AppInner() {
       const move = chess.move({ from: source, to: target, promotion: 'q' })
       if (move) {
         if (soundEnabled) playMoveAudio(move.san, move.captured)
+        const ply = (currentMove?.ply ?? 0) + 1
+        const parsedMove: ParsedMove = {
+          index: (currentMove?.index ?? 0) + 1,
+          ply,
+          moveNumber: Math.floor(ply / 2) + 1,
+          color: move.color,
+          san: move.san,
+          lan: move.lan || `${move.from}${move.to}`,
+          from: move.from as Square,
+          to: move.to as Square,
+          piece: move.piece,
+          captured: move.captured,
+          promotion: move.promotion,
+          fenBefore: baseFen,
+          fenAfter: chess.fen(),
+          eval: currentMove?.eval,
+          classification: 'good'
+        }
         setExplorationState({
           active: true,
           fromFen: currentFen,
           testFen: chess.fen(),
-          testMoveSan: move.san
+          testMoveSan: move.san,
+          testMoveParsed: parsedMove
         })
         return true
       }
@@ -327,7 +347,7 @@ function AppInner() {
       return false
     }
     return false
-  }, [currentFen, explorationState, soundEnabled])
+  }, [currentFen, currentMove, explorationState, soundEnabled])
 
   // Play sound effect on move change
   useEffect(() => {
@@ -642,11 +662,12 @@ function AppInner() {
               ) : (
                 <>
                   <MoveExplanation
-                    currentMove={currentMove}
+                    currentMove={explorationState?.testMoveParsed || currentMove}
                     openingName={game.openingName}
                     ecoCode={game.ecoCode}
                     whitePlayer={game.metadata.white}
                     blackPlayer={game.metadata.black}
+                    isExploration={Boolean(explorationState)}
                   />
                   <MoveList
                     moves={game.moves}
