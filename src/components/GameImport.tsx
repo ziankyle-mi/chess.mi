@@ -142,23 +142,37 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
       )}
 
       {activeTab === 'samples' && (
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
           {SAMPLE_GAMES.map((sample, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 rounded-md" style={{ background: 'var(--bg-elevated)' }}>
-              <div className="flex-1 pr-3 min-w-0">
-                <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--text)' }}>
+            <div
+              key={idx}
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-lg border gap-3 transition-all hover:border-[var(--border)]"
+              style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-subtle)' }}
+            >
+              <div className="flex-1 pr-2 min-w-0">
+                <div className="flex items-center gap-2 text-xs font-bold" style={{ color: 'var(--text)' }}>
                   <Trophy className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} />
                   <span className="truncate">{sample.title}</span>
+                  {(sample as any).category && (
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ml-auto sm:ml-0"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--accent)' }}
+                    >
+                      {(sample as any).category}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[11px] mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{sample.desc}</p>
+                <p className="text-[11px] mt-1 line-clamp-2 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  {sample.desc}
+                </p>
               </div>
               <button
                 onClick={() => onLoadPgn(sample.pgn)}
                 disabled={currentLoading}
-                className="px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold shrink-0 cursor-pointer shadow-sm transition-all active:scale-95 disabled:opacity-40 self-end sm:self-center"
                 style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
               >
-                Load
+                Load Game
               </button>
             </div>
           ))}
