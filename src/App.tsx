@@ -556,7 +556,7 @@ function AppInner() {
           </div>
         )}
         {activeTab === 'board' && (
-          <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 lg:gap-8 w-full max-w-[1240px] my-auto">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 lg:gap-8 w-full max-w-[1240px] py-1">
             <div className="flex flex-col items-center lg:items-start gap-1.5 w-full max-w-[560px] shrink-0">
               {/* Top player */}
               <PlayerCard

@@ -77,28 +77,81 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
 
   if (!currentMove) {
     return (
-      <div className="rounded-lg px-4 py-3 flex flex-col gap-2 shadow-sm" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Starting Position</span>
-            <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              · {whitePlayer} vs {blackPlayer}
-            </span>
+      <div
+        className="rounded-lg overflow-hidden flex flex-col transition-all duration-150"
+        style={{
+          background: 'var(--bg-panel)',
+          border: '1px solid var(--border-subtle)',
+          minHeight: explanationMode === 'depth' ? '210px' : '135px'
+        }}
+      >
+        <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center font-mono font-bold text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+              0
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold" style={{ color: 'var(--text)' }}>Starting Position</span>
+                {ecoCode && (
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+                    {ecoCode}
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                {whitePlayer} vs {blackPlayer}
+              </div>
+            </div>
           </div>
-          {ecoCode && (
-            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
-              {ecoCode}
-            </span>
-          )}
+
+          {/* Mode Switcher */}
+          <div className="flex items-center p-0.5 rounded shrink-0 select-none text-[11px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+            <button
+              onClick={() => handleModeChange('concise')}
+              className="px-2 py-0.5 rounded font-medium transition-all cursor-pointer"
+              style={{
+                background: explanationMode === 'concise' ? 'var(--bg-panel)' : 'transparent',
+                color: explanationMode === 'concise' ? 'var(--text)' : 'var(--text-muted)',
+                boxShadow: explanationMode === 'concise' ? '0 1px 2px rgba(0,0,0,0.2)' : 'none'
+              }}
+              title="Concise move summary"
+            >
+              Concise
+            </button>
+            <button
+              onClick={() => handleModeChange('depth')}
+              className="px-2 py-0.5 rounded font-medium transition-all cursor-pointer"
+              style={{
+                background: explanationMode === 'depth' ? 'var(--bg-panel)' : 'transparent',
+                color: explanationMode === 'depth' ? 'var(--accent)' : 'var(--text-muted)',
+                boxShadow: explanationMode === 'depth' ? '0 1px 2px rgba(0,0,0,0.2)' : 'none'
+              }}
+              title="In-depth tactical coach breakdown"
+            >
+              In-Depth Coach
+            </button>
+          </div>
         </div>
 
-        {openingTip && (
-          <div className="flex items-center gap-1.5 text-xs">
-            <BookOpen className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--accent)' }} />
+        <div className="px-4 py-3 flex-1 flex flex-col justify-between space-y-2">
+          <div className="flex items-center gap-2 text-xs">
+            <BookOpen className="w-4 h-4 shrink-0" style={{ color: 'var(--accent)' }} />
             <span className="font-medium truncate" style={{ color: 'var(--text)' }}>{openingName}</span>
-            <span className="text-[11px] truncate opacity-75" style={{ color: 'var(--text-secondary)' }}>— {openingTip.theme}</span>
+            <span className="text-[11px] truncate opacity-75" style={{ color: 'var(--text-secondary)' }}>— {openingTip?.theme || 'Standard Game'}</span>
           </div>
-        )}
+
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            {openingTip?.keyPlans?.[0]
+              ? `Key Plan: ${openingTip.keyPlans[0]}`
+              : 'Both sides contest the center and coordinate pieces. Use ← → arrows to analyze each move.'}
+          </p>
+
+          <div className="text-[11px] pt-1 flex items-center justify-between" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <span>Press → or click moves below to begin</span>
+            <span className="font-mono">Move 0</span>
+          </div>
+        </div>
       </div>
     )
   }
@@ -111,7 +164,14 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
   const isError = ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(classification)
 
   return (
-    <div className="rounded-lg overflow-hidden flex flex-col" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
+    <div
+      className="rounded-lg overflow-hidden flex flex-col transition-all duration-150"
+      style={{
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border-subtle)',
+        minHeight: explanationMode === 'depth' ? '210px' : '135px'
+      }}
+    >
       {/* Classification & Mode Header Bar */}
       <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: `2px solid ${classColor}` }}>
         <div className="flex items-center gap-2.5 min-w-0">
@@ -289,7 +349,7 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
 
       {/* Mode 2: Concise Summary View */}
       {explanationMode === 'concise' && (
-        <div className="px-4 py-3 space-y-3">
+        <div className="px-4 py-3 flex-1 flex flex-col justify-between space-y-2.5">
           <div className="flex items-start gap-2.5">
             {isError ? (
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: classColor }} />
@@ -301,20 +361,25 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
             </p>
           </div>
 
-          {/* Better move suggestion */}
-          {isError && currentMove.bestMoveSan && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md" style={{ background: 'var(--bg-elevated)' }}>
+          {/* Better move suggestion or stable footer row */}
+          {isError && currentMove.bestMoveSan ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'var(--bg-elevated)' }}>
               <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Better:</span>
               <span className="font-mono text-xs font-bold" style={{ color: 'var(--accent)' }}>
                 {currentMove.bestMoveSan}
               </span>
             </div>
+          ) : (
+            <div className="flex items-center justify-between text-[11px] pt-1" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+              <span className="truncate max-w-[260px]">{openingTip?.theme || openingName}</span>
+              <span className="font-mono shrink-0">Move {currentMove.moveNumber}</span>
+            </div>
           )}
 
           {/* Opening pitfall reminder */}
           {currentMove.moveNumber <= 12 && openingTip && isError && (
-            <div className="text-[11px] italic pt-2" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)' }}>
+            <div className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
               Pitfall: {openingTip.pitfalls}
             </div>
           )}

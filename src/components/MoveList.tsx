@@ -65,8 +65,22 @@ export const MoveList: React.FC<MoveListProps> = ({
   }
 
   useEffect(() => {
-    if (activeMoveRef.current && containerRef.current) {
-      activeMoveRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    const el = activeMoveRef.current
+    const container = containerRef.current
+    if (!container) return
+
+    if (!el || currentIndex <= 0) {
+      container.scrollTop = 0
+      return
+    }
+
+    const elRect = el.getBoundingClientRect()
+    const containerRect = container.getBoundingClientRect()
+
+    if (elRect.top < containerRect.top) {
+      container.scrollTop -= (containerRect.top - elRect.top + 6)
+    } else if (elRect.bottom > containerRect.bottom) {
+      container.scrollTop += (elRect.bottom - containerRect.bottom + 6)
     }
   }, [currentIndex])
 
@@ -332,7 +346,7 @@ export const MoveList: React.FC<MoveListProps> = ({
       )}
 
       {/* Moves */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto max-h-[380px] text-[13px]">
+      <div ref={containerRef} className="flex-1 overflow-y-auto max-h-[330px] text-[13px]">
         {moves.length === 0 ? (
           <div className="p-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
             Load a game to see moves here.
