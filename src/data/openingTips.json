@@ -1,0 +1,170 @@
+{
+  "Caro-Kann Defense": {
+    "name": "Caro-Kann Defense",
+    "ecoPrefix": "B1",
+    "theme": "Solid pawn structure and a healthy king, trading dynamic initiative for long-term endgame stability.",
+    "keyPlans": [
+      "Develop the light-squared bishop outside the pawn chain to f5 or g4 before locking the structure with ...e6.",
+      "Execute the central break with ...c5 to challenge White's d4 pawn center.",
+      "In the Advance Variation (3. e5), immediately activate the bishop to Bf5, followed by ...e6 and ...c5.",
+      "In the Classical Variation (3. Nc3 dxe4 4. Nxe4 Bf5), swap knights if necessary and steer into an endgame where Black's pawn structure has zero weaknesses."
+    ],
+    "pawnBreaks": ["...c5 (primary)", "...e5 (if White plays passively)"],
+    "criticalPieces": "Light-squared bishop (Bf5/Bg4) — do not let it get trapped behind the e6-pawn.",
+    "pitfalls": "Avoid passive development where the f5 bishop is chased and traded without compensation or trapped by h4-g4 pawn storms."
+  },
+  "Sicilian Defense": {
+    "name": "Sicilian Defense",
+    "ecoPrefix": "B2",
+    "theme": "Asymmetrical counter-attack fighting directly for central imbalance and queen-side counterplay.",
+    "keyPlans": [
+      "Leverage the semi-open c-file with rooks on c8 and queen pressure on c7/a5.",
+      "Watch for White's f4-f5 or g4 kingside pawn storms; respond with timely central strikes (...d5 or ...e5).",
+      "Minor piece harmony: Knights coordinate on c6 and f6 (or d7), dark-squared bishop controls the diagonal from e7 or g7.",
+      "Exchange White's active knight on d4 if it limits Black's piece mobility."
+    ],
+    "pawnBreaks": ["...d5 (the freeing central break)", "...b5 (queenside expansion in Najdorf/Dragon)"],
+    "criticalPieces": "Dark-squared bishop (e7 in Scheveningen/Najdorf, g7 in Dragon) defends the king and attacks the center.",
+    "pitfalls": "Greedy queen raids or delaying kingside castling while White rips open central files with d4 sacrifices."
+  },
+  "French Defense": {
+    "name": "French Defense",
+    "ecoPrefix": "C0",
+    "theme": "Solid central wedge with fixed pawn chains; Black seeks to undermine White's pawn base on d4.",
+    "keyPlans": [
+      "Assault White's pawn chain base with ...c5, followed by ...Nc6 and ...Qb6 to overload d4.",
+      "Solve the problem of the 'French Bishop' (light-squared bishop on c8) via ...b6 and ...Ba6, or ...Bd7 followed by ...Be8-g6.",
+      "In the Advance Variation (3. e5 c5 4. c3), hammer d4 relentlessly before preparing the second break with ...f6.",
+      "In the Winawer (3. Nc3 Bb4), pin the knight, damage White's queenside pawns with Bxc3+, and exploit the doubled c-pawns."
+    ],
+    "pawnBreaks": ["...c5 (immediate assault on d4)", "...f6 (demolition of White's e5 wedge)"],
+    "criticalPieces": "Light-squared bishop (c8) is naturally restricted; liberating it or trading it off via Ba6 is a high strategic priority.",
+    "pitfalls": "Suffocating from passive defense: failing to strike at c5 or f6 allows White a free attacking hand on the kingside."
+  },
+  "Italian Game": {
+    "name": "Italian Game",
+    "ecoPrefix": "C5",
+    "theme": "Classical central tension focusing on development and pressure on the sensitive f7/f2 weakness.",
+    "keyPlans": [
+      "White aims to build a broad pawn center with c3 and d4, or play the Giuoco Pianissimo with d3 for slow positional pressure.",
+      "Black seeks harmonic development with ...Bc5, ...Nf6, and timely castling, preparing central counter-punches with ...d5.",
+      "Control the a2-g8 and a7-g1 diagonals with active light/dark-squared bishops.",
+      "In the Two Knights Defense (3...Nf6), Black sacrifices a pawn with 4. Ng5 d5 5. exd5 Na5 for massive development lead and piece activity."
+    ],
+    "pawnBreaks": ["d4 for White", "...d5 for Black"],
+    "criticalPieces": "The Italian Bishop (c4 for White, c5 for Black) dictating diagonal pressure.",
+    "pitfalls": "Neglecting king safety or leaving the f7/f2 square vulnerable to tactical pins like Bg5 or knight leaps to g5/d5."
+  },
+  "Ruy Lopez": {
+    "name": "Ruy Lopez",
+    "ecoPrefix": "C6",
+    "theme": "The Spanish Torture: enduring strategic pressure on Black's e5 stronghold and kingside structure.",
+    "keyPlans": [
+      "White maneuvers the b1 knight via d2-f1-g3 to assist kingside attacking prospects.",
+      "Black commonly pushes ...a6 and ...b5 to dislodge White's light-squared bishop, anchoring knights on c6/a5 and controlling c5.",
+      "In the Closed Ruy Lopez, White maintains central tension with c3 and d4 while Black prepares ...c5 or ...d5.",
+      "In the Berlin Defense (3...Nf6 4. O-O Nxe4), Black accepts the endgame double-pawn structure in exchange for the bishop pair and resilience."
+    ],
+    "pawnBreaks": ["d4 for White", "...d5 or ...c5 for Black"],
+    "criticalPieces": "White's light-squared bishop on c2/b3; preserve it at all costs from trades with Black's knight.",
+    "pitfalls": "Black allowing White full central domination without achieving the ...c5 counterbreak or conceding premature pawn weaknesses."
+  },
+  "Queen's Gambit": {
+    "name": "Queen's Gambit",
+    "ecoPrefix": "D0",
+    "theme": "White sacrifices a wing pawn (c4) to establish total dominance over the center squares d4 and e4.",
+    "keyPlans": [
+      "If accepted (2...dxc4), White regains the pawn with e3/e4 and Bxc4, controlling the center.",
+      "In Queen's Gambit Declined (2...e6), Black maintains the d5 anchor and focuses on resolving the c8 bishop via ...b6 or eventual ...c5.",
+      "In the Slav Defense (2...c6), Black supports d5 without blocking the c8 bishop, keeping options open for ...Bf5 or ...Bg4.",
+      "Minority Attack (in Carlsbad pawn structure): White pushes b4-b5 to create an isolated or backward pawn on c6 for Black."
+    ],
+    "pawnBreaks": ["...c5 (Black's primary central liberating strike)", "...e5 (tactical break if White is uncastled)"],
+    "criticalPieces": "Black's c8 bishop: locked behind e6 in the QGD, active outside in the Slav.",
+    "pitfalls": "Black attempting to stubbornly hold onto the c4 pawn in the QGA with ...b5, leading to queenside ruin."
+  },
+  "King's Indian Defense": {
+    "name": "King's Indian Defense",
+    "ecoPrefix": "E6",
+    "theme": "Hypermodern battle: Black surrenders the center early to launch a vicious kingside pawn storm against White's monarch.",
+    "keyPlans": [
+      "Establish the setup: 1...Nf6, 2...g6, 3...Bg7, 4...O-O, 5...d6, and strike the center with ...e5.",
+      "Once the center locks after d4-d5, Black reroutes the f6 knight to h5 or e8 and unleashes the ...f5-f4 pawn avalanche.",
+      "White attacks furiously on the queenside with c5 and b4, opening the c-file.",
+      "It is a race: White wins on the queenside if Black fails to deliver checkmate on the kingside."
+    ],
+    "pawnBreaks": ["...f5 (Black's lifeblood kingside attack)", "c5 (White's queenside spearhead)"],
+    "criticalPieces": "King's Indian Bishop on g7: initially sleeping, becomes a laser beam across the long diagonal once center clarifies.",
+    "pitfalls": "Black hesitating on the kingside: playing timid positional moves while White crushes the queenside means swift defeat."
+  },
+  "London System": {
+    "name": "London System",
+    "ecoPrefix": "D02",
+    "theme": "Universal, hyper-solid schematic setup for White based on rapid development and a rock-solid pyramid center.",
+    "keyPlans": [
+      "Develop 1. d4, 2. Bf4, 3. e3, 4. Nf3, 5. c3, 6. Nbd2, 7. Bd3 before committing to action.",
+      "Anchor a knight on e5, supported by pawns on d4 and f4 (the Stonewall pivot).",
+      "If Black challenges the f4 bishop with ...Bd6, retreat to g3 so that an exchange opens the h-file for White's rook.",
+      "Black counterplay: Strike early with ...c5 and ...Qb6 targeting the weakened b2 square left by the departed f4 bishop."
+    ],
+    "pawnBreaks": ["e4 for White after piece preparation", "...c5 and ...e5 for Black"],
+    "criticalPieces": "White's dark-squared bishop on f4: the keystone of the system. Do not let it be traded unfavorably.",
+    "pitfalls": "Playing automatically: neglecting Black's tactical ideas like ...Qb6, ...cxd4, or ...Nh5 hunting the bishop."
+  },
+  "Scandinavian Defense": {
+    "name": "Scandinavian Defense",
+    "ecoPrefix": "B01",
+    "theme": "Immediate challenge to White's e4 pawn on move 1, opening lines at the cost of early queen moves.",
+    "keyPlans": [
+      "In 2...Qxd5 3. Nc3 Qa5 (or Qd6/Qd8), Black secures a Caro-Kann-like pawn shell with ...c6 and ...e6.",
+      "Develop bishops outside the pawn chain (...Bf5 or ...Bg4) before closing with ...e6.",
+      "In the modern 2...Nf6, Black avoids early queen exposure and recaptures d5 with the knight or plays the Portuguese Gambit (...Bg4).",
+      "White looks to gain free tempos developing minor pieces (Nc3, d4, Nf3, Bc4/Bf4) and punish Black's queen maneuvers."
+    ],
+    "pawnBreaks": ["...c5 or ...e5 by Black", "d5 by White"],
+    "criticalPieces": "Black Queen: ensure safe retreat squares (d8, c7, d6) and avoid getting trapped on a5.",
+    "pitfalls": "Wasting moves saving the queen while falling fatally behind in development and king safety."
+  },
+  "English Opening": {
+    "name": "English Opening",
+    "ecoPrefix": "A1",
+    "theme": "Flank opening exerting subtle, flexible control over the central d5 square without committing central pawns early.",
+    "keyPlans": [
+      "Fianchetto the light-squared bishop to g2 to exert diagonal pressure toward the queenside.",
+      "Queenside expansion with a3, Rb1, and b4, coordinating with the g2 bishop.",
+      "If Black plays 1...e5 (Reversed Sicilian), White enjoys a Sicilian position with an extra tempo.",
+      "Transpositional flexibility: White can transpose into 1. d4 setups (Queen's Gambit, Catalan) whenever favorable."
+    ],
+    "pawnBreaks": ["b4 (queenside expansion)", "d4 (central liquidation)"],
+    "criticalPieces": "White's g2 bishop: dominates the dark squares and pressures d5/c6/b7.",
+    "pitfalls": "Slow development allowing Black to seize total control of the center with ...e5, ...d5, and rapid piece coordination."
+  },
+  "Nimzo-Indian Defense": {
+    "name": "Nimzo-Indian Defense",
+    "ecoPrefix": "E2",
+    "theme": "Hypermodern masterpiece: Black pins and trades for White's c3 knight, inflicting doubled pawns and taking rapid control of e4.",
+    "keyPlans": [
+      "Pin the knight with ...Bb4 after 1. d4 Nf6 2. c4 e6 3. Nc3 Bb4.",
+      "Inflict doubled pawns on White with ...Bxc3+ and systematically blockade the c4/c3 pawns.",
+      "Control the critical e4 outpost using a knight on f6 and pawn on d6 or f5.",
+      "White leverages the bishop pair to seek central expansion (e4) and attacking chances against Black's king."
+    ],
+    "pawnBreaks": ["...c5 or ...d5 for Black", "e4 for White"],
+    "criticalPieces": "Dark-squared bishop: Black gives it up on c3 to inflict structural damage, so Black must control dark squares with pawns.",
+    "pitfalls": "Black allowing White's bishop pair to open up the position with e4-d5 before Black secures the blockade."
+  },
+  "General": {
+    "name": "Classical Principles",
+    "ecoPrefix": "-",
+    "theme": "Fundamental chess principles: rapid development, central control, king safety, and tactical awareness.",
+    "keyPlans": [
+      "Control the four central squares (e4, d4, e5, d5) with pawns or active minor pieces.",
+      "Develop knights before bishops and do not move the same piece twice in the opening without concrete tactical reason.",
+      "Castle early (usually kingside) to safeguard your king and connect your rooks along central files.",
+      "Never leave pieces undefended ('loose pieces drop off'). Every piece must have a defender or a tactical justification."
+    ],
+    "pawnBreaks": ["Central pawn pushes that challenge the opponent's fortified squares."],
+    "criticalPieces": "The King: prioritize shelter before initiating complications.",
+    "pitfalls": "Premature queen raids, neglecting development to chase wing pawns, and leaving the king in the center."
+  }
+}
