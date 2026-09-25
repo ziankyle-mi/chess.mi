@@ -44,6 +44,7 @@ export interface PhaseStats {
   accuracy: number
   blunders: number
   movesCount: number
+  gamesCount: number
   status: 'strong' | 'solid' | 'weak'
   statusLabel: string
   summary: string
@@ -86,7 +87,11 @@ export interface AggregateStats {
   userStats?: UserAccountStats | null
 }
 
+import { analyzeGameRecordFast } from '../engine/batchAnalyzer'
+
 const STORAGE_KEY = 'chess_analyzer_history_v1'
+const STORAGE_EVAL_VERSION_KEY = 'chess_analyzer_eval_version'
+const CURRENT_EVAL_VERSION = 'v6_chesscom_thresholds'
 const USER_ACCOUNT_KEY = 'chess_user_account'
 
 export function getUserAccount(): string {
@@ -112,7 +117,39 @@ export function getStoredGames(): AnalyzedGameRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
-    return JSON.parse(raw)
+    const parsed: AnalyzedGameRecord[] = JSON.parse(raw)
+
+    // Check if migration is needed to fix old centipawn-swing corrupted blunder counts
+    const currentVersion = localStorage.getItem(STORAGE_EVAL_VERSION_KEY)
+    if (currentVersion !== CURRENT_EVAL_VERSION) {
+      const migrated: AnalyzedGameRecord[] = []
+      let hadMigrations = false
+      for (const game of parsed) {
+        if (game.pgn) {
+          try {
+            const reanalyzed = analyzeGameRecordFast(
+              game.pgn,
+              { white: game.whiteAccuracy, black: game.blackAccuracy },
+              game.id
+            )
+            if (reanalyzed) {
+              migrated.push(reanalyzed)
+              hadMigrations = true
+              continue
+            }
+          } catch (e) {
+            console.warn('Failed re-analyzing game during migration:', e)
+          }
+        }
+        migrated.push(game)
+      }
+      localStorage.setItem(STORAGE_EVAL_VERSION_KEY, CURRENT_EVAL_VERSION)
+      if (hadMigrations) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+        return migrated
+      }
+    }
+    return parsed
   } catch (err) {
     console.warn('Failed reading games from localStorage:', err)
     return []
@@ -128,6 +165,7 @@ export function saveAnalyzedGame(game: AnalyzedGameRecord): void {
     // Strictly keep the latest 20 games (First In, First Out)
     const updated = [game, ...filtered].slice(0, 20)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    localStorage.setItem(STORAGE_EVAL_VERSION_KEY, CURRENT_EVAL_VERSION)
   } catch (err) {
     console.warn('Failed saving game to localStorage:', err)
   }
@@ -142,6 +180,7 @@ export function saveAnalyzedGamesBatch(newGames: AnalyzedGameRecord[]): Analyzed
     // Strictly keep the latest 20 games (FIFO)
     const updated = [...newGames, ...filtered].slice(0, 20)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    localStorage.setItem(STORAGE_EVAL_VERSION_KEY, CURRENT_EVAL_VERSION)
     return updated
   } catch (err) {
     console.warn('Failed saving batch games to localStorage:', err)
@@ -176,9 +215,9 @@ export function calculateUserAccountStats(
   let whiteCount = 0, blackCount = 0
   let whiteAccSum = 0, blackAccSum = 0
 
-  let opAccSum = 0, opCount = 0, opBlunders = 0
-  let midAccSum = 0, midCount = 0, midBlunders = 0
-  let endAccSum = 0, endCount = 0, endBlunders = 0
+  let opAccSum = 0, opGamesCount = 0, opMovesCount = 0, opBlunders = 0
+  let midAccSum = 0, midGamesCount = 0, midMovesCount = 0, midBlunders = 0
+  let endAccSum = 0, endGamesCount = 0, endMovesCount = 0, endBlunders = 0
 
   const userBlunderPatterns: Record<string, number> = {}
   let totalUserBlunders = 0
@@ -197,17 +236,20 @@ export function calculateUserAccountStats(
       if (g.whitePhases) {
         if (g.whitePhases.openingCount > 0) {
           opAccSum += g.whitePhases.openingAcc
-          opCount++
+          opGamesCount++
+          opMovesCount += g.whitePhases.openingCount
           opBlunders += g.whitePhases.openingBlunders
         }
         if (g.whitePhases.middlegameCount > 0) {
           midAccSum += g.whitePhases.middlegameAcc
-          midCount++
+          midGamesCount++
+          midMovesCount += g.whitePhases.middlegameCount
           midBlunders += g.whitePhases.middlegameBlunders
         }
         if (g.whitePhases.endgameCount > 0) {
           endAccSum += g.whitePhases.endgameAcc
-          endCount++
+          endGamesCount++
+          endMovesCount += g.whitePhases.endgameCount
           endBlunders += g.whitePhases.endgameBlunders
         }
       }
@@ -227,17 +269,20 @@ export function calculateUserAccountStats(
       if (g.blackPhases) {
         if (g.blackPhases.openingCount > 0) {
           opAccSum += g.blackPhases.openingAcc
-          opCount++
+          opGamesCount++
+          opMovesCount += g.blackPhases.openingCount
           opBlunders += g.blackPhases.openingBlunders
         }
         if (g.blackPhases.middlegameCount > 0) {
           midAccSum += g.blackPhases.middlegameAcc
-          midCount++
+          midGamesCount++
+          midMovesCount += g.blackPhases.middlegameCount
           midBlunders += g.blackPhases.middlegameBlunders
         }
         if (g.blackPhases.endgameCount > 0) {
           endAccSum += g.blackPhases.endgameAcc
-          endCount++
+          endGamesCount++
+          endMovesCount += g.blackPhases.endgameCount
           endBlunders += g.blackPhases.endgameBlunders
         }
       }
@@ -256,9 +301,9 @@ export function calculateUserAccountStats(
   const whiteAccuracy = whiteCount > 0 ? Math.round((whiteAccSum / whiteCount) * 10) / 10 : avgAccuracy
   const blackAccuracy = blackCount > 0 ? Math.round((blackAccSum / blackCount) * 10) / 10 : avgAccuracy
 
-  const opAcc = opCount > 0 ? Math.round((opAccSum / opCount) * 10) / 10 : Math.round(avgAccuracy * 1.05 * 10) / 10
-  const midAcc = midCount > 0 ? Math.round((midAccSum / midCount) * 10) / 10 : Math.round(avgAccuracy * 0.94 * 10) / 10
-  const endAcc = endCount > 0 ? Math.round((endAccSum / endCount) * 10) / 10 : Math.round(avgAccuracy * 0.98 * 10) / 10
+  const opAcc = opGamesCount > 0 ? Math.round((opAccSum / opGamesCount) * 10) / 10 : Math.round(avgAccuracy * 1.05 * 10) / 10
+  const midAcc = midGamesCount > 0 ? Math.round((midAccSum / midGamesCount) * 10) / 10 : Math.round(avgAccuracy * 0.94 * 10) / 10
+  const endAcc = endGamesCount > 0 ? Math.round((endAccSum / endGamesCount) * 10) / 10 : Math.round(avgAccuracy * 0.98 * 10) / 10
 
   // Determine strongest and weakest phases with realistic weighting
   const phaseScores = [
@@ -274,18 +319,20 @@ export function calculateUserAccountStats(
     phaseName: 'Opening' | 'Middlegame' | 'Endgame',
     acc: number,
     blunders: number,
+    gamesCount: number,
     isStrongest: boolean,
     isWeakest: boolean
   ): { status: 'strong' | 'solid' | 'weak'; label: string; summary: string } => {
+    const gameContext = `over ${gamesCount} game${gamesCount === 1 ? '' : 's'}`
     if (isStrongest) {
       return {
         status: 'strong',
         label: 'Strongest Phase',
         summary: phaseName === 'Opening'
-          ? `Solid opening fundamentals (${acc}% accuracy). Controls the center and safely navigates into the middlegame.`
+          ? `Solid opening fundamentals (${acc}% accuracy ${gameContext}). Controls the center and safely navigates into the middlegame.`
           : phaseName === 'Middlegame'
-          ? `Sharp tactical vision (${acc}% accuracy). Handles multi-piece fights and piece coordination cleanly.`
-          : `Reliable endgame conversion (${acc}% accuracy). Activates the king and creates passed pawns efficiently.`
+          ? `Sharp tactical vision (${acc}% accuracy ${gameContext}). Handles multi-piece fights and piece coordination cleanly.`
+          : `Reliable endgame conversion (${acc}% accuracy ${gameContext}). Activates the king and creates passed pawns efficiently.`
       }
     }
     if (isWeakest) {
@@ -293,26 +340,26 @@ export function calculateUserAccountStats(
         status: 'weak',
         label: 'Primary Focus',
         summary: phaseName === 'Opening'
-          ? `Struggles in the first 10-12 moves (${acc}% accuracy, ${blunders} blunders). Conceding early space or piece pins.`
+          ? `Struggles in the first 10-12 moves (${acc}% accuracy, ${blunders} blunders ${gameContext}). Conceding early space or piece pins.`
           : phaseName === 'Middlegame'
-          ? `Primary tactical battleground (${acc}% accuracy, ${blunders} blunders). Material is dropped during sharp piece exchanges.`
-          : `Endgame conversion needs practice (${acc}% accuracy, ${blunders} blunders). Tends to surrender leads in simplified boards.`
+          ? `Primary tactical battleground (${acc}% accuracy, ${blunders} blunders ${gameContext}). Material is dropped during sharp piece exchanges.`
+          : `Endgame conversion needs practice (${acc}% accuracy, ${blunders} blunders ${gameContext}). Tends to surrender leads in simplified boards.`
       }
     }
     return {
       status: 'solid',
       label: 'Developing',
       summary: phaseName === 'Opening'
-        ? `Decent opening setups (${acc}% accuracy). A few development delays, but generally avoids early tactical traps.`
+        ? `Decent opening setups (${acc}% accuracy ${gameContext}). A few development delays, but generally avoids early tactical traps.`
         : phaseName === 'Middlegame'
-        ? `Handles standard positional setups reasonably well (${acc}% accuracy), with occasional slips during complex trades.`
-        : `Steady handling of basic endgames (${acc}% accuracy), rarely throwing away games in low-material positions.`
+        ? `Handles standard positional setups reasonably well (${acc}% accuracy ${gameContext}), with occasional slips during complex trades.`
+        : `Steady handling of basic endgames (${acc}% accuracy ${gameContext}), rarely throwing away games in low-material positions.`
     }
   }
 
-  const opStatus = getPhaseMeta('Opening', opAcc, opBlunders, strongestPhase === 'Opening', weakestPhase === 'Opening')
-  const midStatus = getPhaseMeta('Middlegame', midAcc, midBlunders, strongestPhase === 'Middlegame', weakestPhase === 'Middlegame')
-  const endStatus = getPhaseMeta('Endgame', endAcc, endBlunders, strongestPhase === 'Endgame', weakestPhase === 'Endgame')
+  const opStatus = getPhaseMeta('Opening', opAcc, opBlunders, opGamesCount, strongestPhase === 'Opening', weakestPhase === 'Opening')
+  const midStatus = getPhaseMeta('Middlegame', midAcc, midBlunders, midGamesCount, strongestPhase === 'Middlegame', weakestPhase === 'Middlegame')
+  const endStatus = getPhaseMeta('Endgame', endAcc, endBlunders, endGamesCount, strongestPhase === 'Endgame', weakestPhase === 'Endgame')
 
   // Tactical Leaks
   const tacticalLeaks = Object.entries(userBlunderPatterns)
@@ -323,45 +370,47 @@ export function calculateUserAccountStats(
     }))
     .sort((a, b) => b.count - a.count)
 
+  const windowStr = `over ${totalUserGames} game${totalUserGames === 1 ? '' : 's'}`
+
   // Dynamic Strengths (genuine human chess coach assessment)
   const strengths: string[] = []
   if (strongestPhase === 'Opening' || opAcc >= 70) {
-    strengths.push(`Opening Foundation (${opAcc}% avg accuracy) — builds consistent, playable setups right out of the opening.`)
+    strengths.push(`Opening Foundation (${opAcc}% avg accuracy ${windowStr}) — builds consistent, playable setups right out of the opening.`)
   }
-  if (strongestPhase === 'Endgame' || (endCount > 0 && endBlunders <= 12)) {
-    strengths.push(`Endgame Composure (${endAcc}% accuracy, ${endBlunders} blunders) — stays disciplined in simplified positions.`)
+  if (strongestPhase === 'Endgame' || (endGamesCount > 0 && endBlunders <= 12)) {
+    strengths.push(`Endgame Composure (${endAcc}% accuracy, ${endBlunders} blunders ${windowStr}) — stays disciplined in simplified positions.`)
   }
   if (whiteAccuracy >= blackAccuracy + 4) {
-    strengths.push(`Initiative with White (${whiteAccuracy}% accuracy) — capitalizes on first-move tempo to dictate game flow.`)
+    strengths.push(`Initiative with White (${whiteAccuracy}% accuracy over ${whiteCount} game${whiteCount === 1 ? '' : 's'}) — capitalizes on first-move tempo to dictate game flow.`)
   }
   if (winRate > 55) {
-    strengths.push(`Winning Match Record (${winRate}% Win Rate) — consistently outplaying opponents across the 20-game window.`)
+    strengths.push(`Winning Match Record (${winRate}% Win Rate ${windowStr}) — consistently outplaying opponents across the ${totalUserGames}-game window.`)
   } else if (winRate === 50) {
-    strengths.push(`Competitive Parity (50% Win Rate) — evenly matched (${wins}W - ${losses}L); tightening tactical trades will tip the scale.`)
+    strengths.push(`Competitive Parity (50% Win Rate ${windowStr}) — evenly matched (${wins}W - ${losses}L); tightening tactical trades will tip the scale.`)
   } else if (wins > 0) {
-    strengths.push(`Resilient Fighting Spirit — capable of finding counter-attacks and punishing opponent overextension.`)
+    strengths.push(`Resilient Fighting Spirit — capable of finding counter-attacks and punishing opponent overextension ${windowStr}.`)
   }
   if (strengths.length === 0) {
-    strengths.push(`Patient positional play in quiet, structured positions.`)
+    strengths.push(`Patient positional play in quiet, structured positions ${windowStr}.`)
   }
 
   // Dynamic Rating Leaks (clear, concrete human coach diagnosis)
   const weaknesses: string[] = []
   if (weakestPhase === 'Middlegame') {
-    weaknesses.push(`Middlegame Tactics (${midAcc}% accuracy, ${midBlunders} blunders) — material lost during multi-piece exchanges between moves 13–30.`)
+    weaknesses.push(`Middlegame Tactics (${midAcc}% accuracy, ${midBlunders} blunders ${windowStr}) — material lost during multi-piece exchanges between moves 13–30.`)
   } else if (weakestPhase === 'Opening') {
-    weaknesses.push(`Opening Concessions (${opAcc}% accuracy, ${opBlunders} blunders) — falls behind in piece development or concedes central control before castling.`)
+    weaknesses.push(`Opening Concessions (${opAcc}% accuracy, ${opBlunders} blunders ${windowStr}) — falls behind in piece development or concedes central control before castling.`)
   } else {
-    weaknesses.push(`Endgame Technique (${endAcc}% accuracy, ${endBlunders} blunders) — struggles to convert piece leads into winning king-and-pawn positions.`)
+    weaknesses.push(`Endgame Technique (${endAcc}% accuracy, ${endBlunders} blunders ${windowStr}) — struggles to convert piece leads into winning king-and-pawn positions.`)
   }
   if (tacticalLeaks.length > 0) {
-    weaknesses.push(`Frequent Pattern: ${tacticalLeaks[0].pattern} (${tacticalLeaks[0].percentage}% of blunders) — remember to verify undefended pieces before moving.`)
+    weaknesses.push(`Frequent Pattern: ${tacticalLeaks[0].pattern} (${tacticalLeaks[0].percentage}% of blunders ${windowStr}) — remember to verify undefended pieces before moving.`)
   }
   if (blackAccuracy < whiteAccuracy - 4) {
-    weaknesses.push(`Black Repertoire (${blackAccuracy}% vs ${whiteAccuracy}% with White) — feels less comfortable playing defensively on the back foot.`)
+    weaknesses.push(`Black Repertoire (${blackAccuracy}% vs ${whiteAccuracy}% with White over ${blackCount} game${blackCount === 1 ? '' : 's'}) — feels less comfortable playing defensively on the back foot.`)
   }
   if (weaknesses.length === 0) {
-    weaknesses.push(`Occasional clock pressure leading to rushed moves in complex positions.`)
+    weaknesses.push(`Occasional clock pressure leading to rushed moves in complex positions ${windowStr}.`)
   }
 
   // Recommended Drills
@@ -419,26 +468,29 @@ export function calculateUserAccountStats(
       opening: {
         accuracy: opAcc,
         blunders: opBlunders,
-        movesCount: opCount,
+        movesCount: opMovesCount,
+        gamesCount: opGamesCount,
         status: opStatus.status,
         statusLabel: opStatus.label,
-        summary: opStatus.status === 'strong' ? 'High accuracy, strong central control' : 'Occasional inaccuracy during opening development'
+        summary: opStatus.summary
       },
       middlegame: {
         accuracy: midAcc,
         blunders: midBlunders,
-        movesCount: midCount,
+        movesCount: midMovesCount,
+        gamesCount: midGamesCount,
         status: midStatus.status,
         statusLabel: midStatus.label,
-        summary: midStatus.status === 'weak' ? 'Primary rating leak: tactical calculation errors' : 'Maintains piece coordination and attacks'
+        summary: midStatus.summary
       },
       endgame: {
         accuracy: endAcc,
         blunders: endBlunders,
-        movesCount: endCount,
+        movesCount: endMovesCount,
+        gamesCount: endGamesCount,
         status: endStatus.status,
         statusLabel: endStatus.label,
-        summary: endStatus.status === 'strong' ? 'Reliable conversion and king activity' : 'Pawn structure and endgame conversion need practice'
+        summary: endStatus.summary
       },
       strongestPhase,
       weakestPhase

@@ -12,10 +12,11 @@ export type BadgeClassification =
   | 'miss'
   | 'blunder'
 
-interface ClassificationBadgeProps {
+export interface ClassificationBadgeProps {
   classification: BadgeClassification | string
   size?: number
   className?: string
+  forceShow?: boolean
 }
 
 interface BadgeConfig {
@@ -69,13 +70,22 @@ const BADGE_CONFIGS: Record<string, BadgeConfig> = {
 /**
  * Authentic, clean vector SVG badge for chess move evaluations.
  * Pure vector geometry — zero emojis or platform text artifacts.
+ * Good and Great moves are hidden by default (matching Chess.com clean board/list)
+ * unless forceShow is true (e.g. for breakdown tables and explanation cards).
  */
 export const ClassificationBadge: React.FC<ClassificationBadgeProps> = ({
   classification,
   size = 26,
-  className = ''
+  className = '',
+  forceShow = false
 }) => {
   const normClass = classification.toLowerCase()
+
+  // Chess.com style: good and great moves do not display a badge on the board or move list
+  if (!forceShow && (normClass === 'good' || normClass === 'great' || normClass === 'excellent')) {
+    return null
+  }
+
   const config = BADGE_CONFIGS[normClass] || BADGE_CONFIGS['good']
   const gradId = `badge-grad-${normClass}-${Math.round(size)}`
 
@@ -138,23 +148,7 @@ export const ClassificationBadge: React.FC<ClassificationBadgeProps> = ({
           </g>
         )}
 
-        {(normClass === 'excellent' || normClass === 'great') && (
-          /* Single bold exclamation mark (!) */
-          <g fill="#ffffff">
-            <path d="M16 7.5c.9 0 1.5.6 1.5 1.4l-.4 8.2c0 .7-.6 1.2-1.3 1.2-.7 0-1.3-.5-1.3-1.2l-.4-8.2c0-.8.6-1.4 1.9-1.4z" />
-            <circle cx="15.8" cy="22" r="1.6" />
-          </g>
-        )}
-
-        {normClass === 'miss' && (
-          /* Clean geometric cross (X) */
-          <g stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round">
-            <line x1="11" y1="11" x2="21" y2="21" />
-            <line x1="21" y1="11" x2="11" y2="21" />
-          </g>
-        )}
-
-        {normClass === 'good' && (
+        {(normClass === 'excellent' || normClass === 'great' || normClass === 'good') && (
           /* Clean geometric checkmark */
           <path
             d="M9 16.5l4.5 4.5 9.5-10"
@@ -164,6 +158,14 @@ export const ClassificationBadge: React.FC<ClassificationBadgeProps> = ({
             strokeLinejoin="round"
             fill="none"
           />
+        )}
+
+        {normClass === 'miss' && (
+          /* Clean geometric cross (X) */
+          <g stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round">
+            <line x1="11" y1="11" x2="21" y2="21" />
+            <line x1="21" y1="11" x2="11" y2="21" />
+          </g>
         )}
 
         {normClass === 'inaccuracy' && (

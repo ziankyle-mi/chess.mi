@@ -25,16 +25,17 @@ import { ThemePicker } from './components/ThemePicker'
 import { PlayerCard } from './components/PlayerCard'
 import { GameReviewReport } from './components/GameReviewReport'
 import { OpponentScout } from './components/OpponentScout'
+import { SparringMode } from './components/SparringMode'
 import { generateGameReviewReport } from './lib/ratingCalculator'
 import { computeMaterialAndCaptures } from './lib/chessUtils'
 import { playMoveAudio } from './lib/sounds'
-import { BarChart2, Compass, Download, CheckCircle2, Cpu, Swords, Volume2, VolumeX, Undo2, Award, Crosshair } from 'lucide-react'
+import { BarChart2, Compass, Download, CheckCircle2, Cpu, Swords, Volume2, VolumeX, Undo2, Award, Crosshair, Bot } from 'lucide-react'
 
 function AppInner() {
   const [game, setGame] = useState<ParsedGame>(() => parsePgn(SAMPLE_GAMES[0].pgn))
   const [currentMoveIndex, setCurrentMoveIndex] = useState<number>(0)
   const [isFlipped, setIsFlipped] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<'board' | 'stats' | 'study' | 'import' | 'scout'>('board')
+  const [activeTab, setActiveTab] = useState<'board' | 'stats' | 'study' | 'import' | 'scout' | 'sparring'>('board')
   const [sideView, setSideView] = useState<'review' | 'analysis'>('review')
   const [moveListFilter, setMoveListFilter] = useState<ClassFilter>('all')
   const [filterCritical, setFilterCritical] = useState<boolean>(false)
@@ -104,7 +105,7 @@ function AppInner() {
     let prevBestMoveLan: string | undefined = undefined
 
     try {
-      const initialRes = await stockfishEngine.evaluateFen(parsedGame.initialFen, 12)
+      const initialRes = await stockfishEngine.evaluateFen(parsedGame.initialFen, 18)
       prevEval = initialRes.eval
       prevBestMoveLan = initialRes.bestMoveLan
     } catch { prevEval = 20 }
@@ -120,7 +121,7 @@ function AppInner() {
       if (analysisCancelRef.current) break
       const move = updatedMoves[i]
       const isBook = isBookPosition(move.fenAfter)
-      const evalRes = await stockfishEngine.evaluateFen(move.fenAfter, 12)
+      const evalRes = await stockfishEngine.evaluateFen(move.fenAfter, 18)
       const currentEval = evalRes.eval
 
       // Pass prevBestMoveLan because that was the best move in the position before move[i] was played!
@@ -389,6 +390,7 @@ function AppInner() {
   }, [])
 
   const tabs = [
+    { id: 'sparring' as const, label: 'Sparring', icon: Bot },
     { id: 'review' as const, label: 'Review', icon: Award },
     { id: 'board' as const, label: 'Analysis', icon: Swords },
     { id: 'scout' as const, label: 'Prep / Scout', icon: Crosshair },
@@ -397,7 +399,7 @@ function AppInner() {
     { id: 'import' as const, label: 'Import', icon: Download }
   ]
 
-  const handleNavClick = (id: 'review' | 'board' | 'scout' | 'stats' | 'study' | 'import') => {
+  const handleNavClick = (id: 'sparring' | 'review' | 'board' | 'scout' | 'stats' | 'study' | 'import') => {
     if (id === 'review') {
       setActiveTab('board')
       setSideView('review')
@@ -424,14 +426,31 @@ function AppInner() {
       <header className="flex items-center justify-between px-4 lg:px-6 py-2.5" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md flex items-center justify-center font-bold text-sm" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
-              ♞
+          <button
+            onClick={() => handleNavClick('board')}
+            className="flex items-center gap-2.5 cursor-pointer text-left group"
+          >
+            <img
+              src="/profile.jpg"
+              alt="chess.mi"
+              className="w-8 h-8 rounded-md object-cover border border-[var(--border)] shadow-sm group-hover:scale-105 transition-transform"
+            />
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-sm hidden sm:block tracking-tight" style={{ color: 'var(--text)' }}>
+                chess.mi
+              </span>
+              <span
+                className="text-[10px] font-mono px-1.5 py-0.5 rounded border leading-none font-medium select-none"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  borderColor: 'var(--border-subtle)',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                ziankyle.mi
+              </span>
             </div>
-            <span className="font-semibold text-sm hidden sm:block tracking-tight" style={{ color: 'var(--text)' }}>
-              chess.mi
-            </span>
-          </div>
+          </button>
 
           {/* Nav tabs */}
           <nav className="flex items-center gap-0.5">
@@ -482,6 +501,22 @@ function AppInner() {
             )}
           </div>
           <ThemePicker />
+
+          {/* Profile Shortcut */}
+          <button
+            onClick={() => handleNavClick('study')}
+            className="flex items-center gap-2 p-1 pr-2.5 rounded-full transition-all cursor-pointer hover:bg-[var(--bg-hover)] border border-[var(--border-subtle)]"
+            title="Profile & Coach"
+          >
+            <img
+              src="/profile.jpg"
+              alt="Profile"
+              className="w-6 h-6 rounded-full object-cover shrink-0"
+            />
+            <span className="text-xs font-medium text-[var(--text)] hidden md:inline max-w-[100px] truncate">
+              {userAccount || 'Profile'}
+            </span>
+          </button>
         </div>
       </header>
 
@@ -534,14 +569,14 @@ function AppInner() {
       )}
 
       {/* Main */}
-      <main className="flex-1 w-full mx-auto px-4 sm:px-8 py-2 flex flex-col justify-center items-center">
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-4 flex flex-col items-center">
         {activeTab === 'import' && (
-          <div className="max-w-3xl mx-auto w-full my-auto">
+          <div className="max-w-3xl mx-auto w-full">
             <GameImport onLoadPgn={handleLoadPgn} currentLoading={isAnalyzing} />
           </div>
         )}
         {activeTab === 'stats' && (
-          <div className="max-w-4xl mx-auto w-full my-auto">
+          <div className="max-w-5xl mx-auto w-full">
             <StatsDashboard
               currentMoves={game.moves} whitePlayer={game.metadata.white} blackPlayer={game.metadata.black}
               aggregateStats={aggregateStats} recentGames={storedGames} onClearHistory={clearHistory}
@@ -549,7 +584,7 @@ function AppInner() {
           </div>
         )}
         {activeTab === 'study' && (
-          <div className="max-w-4xl mx-auto w-full my-auto">
+          <div className="max-w-5xl mx-auto w-full">
             <StudyNext
               nudge={aggregateStats.studyNextNudge}
               topPattern={aggregateStats.topBlunderPattern}
@@ -570,12 +605,23 @@ function AppInner() {
           </div>
         )}
         {activeTab === 'scout' && (
-          <div className="w-full flex justify-center py-1">
+          <div className="max-w-5xl mx-auto w-full">
             <OpponentScout
               onLoadOpeningLine={(pgn, _openingName) => {
                 handleLoadPgn(pgn)
                 setActiveTab('board')
                 setSideView('analysis')
+              }}
+            />
+          </div>
+        )}
+        {activeTab === 'sparring' && (
+          <div className="w-full flex justify-center">
+            <SparringMode
+              userAccount={userAccount}
+              soundEnabled={soundEnabled}
+              onFinishGame={(pgn) => {
+                handleLoadPgn(pgn)
               }}
             />
           </div>
@@ -724,6 +770,10 @@ function AppInner() {
           </div>
         )}
       </main>
+      <footer className="py-2 text-center text-[11px] font-mono text-[var(--text-muted)] select-none border-t border-[var(--border-subtle)] mt-auto">
+        <span>chess.mi · created by </span>
+        <span className="text-[var(--text-secondary)] font-medium">ziankyle.mi</span>
+      </footer>
     </div>
   )
 }

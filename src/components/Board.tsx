@@ -15,6 +15,8 @@ interface BoardProps {
   kingInCheckSquare?: string
   onMakeMove?: (from: string, to: string) => boolean
   allowDragging?: boolean
+  /** Queued premove to highlight while the bot is thinking */
+  premove?: { from: string; to: string } | null
 }
 
 /**
@@ -56,7 +58,8 @@ export const Board: React.FC<BoardProps> = ({
   classification,
   kingInCheckSquare,
   onMakeMove,
-  allowDragging = true
+  allowDragging = true,
+  premove
 }) => {
   const { boardTheme } = useTheme()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -173,8 +176,24 @@ export const Board: React.FC<BoardProps> = ({
       }
     }
 
+    // Premove highlight: orange tint on queued from/to squares
+    if (premove?.from) {
+      styles[premove.from] = {
+        ...styles[premove.from],
+        backgroundColor: 'rgba(245, 158, 11, 0.45)',
+        boxShadow: 'inset 0 0 0 2px rgba(245, 158, 11, 0.85)'
+      }
+    }
+    if (premove?.to) {
+      styles[premove.to] = {
+        ...styles[premove.to],
+        backgroundColor: 'rgba(245, 158, 11, 0.35)',
+        boxShadow: 'inset 0 0 0 2px rgba(245, 158, 11, 0.65)'
+      }
+    }
+
     return styles
-  }, [lastMove, boardTheme, kingInCheckSquare, userSquareHighlights, selectedSquare, legalMovesFromSelected])
+  }, [lastMove, boardTheme, kingInCheckSquare, userSquareHighlights, selectedSquare, legalMovesFromSelected, premove])
 
   // Badge overlay data
   const badge = useMemo(() => {
@@ -261,7 +280,7 @@ export const Board: React.FC<BoardProps> = ({
           position: fen,
           boardOrientation: orientation,
           allowDragging: allowDragging && Boolean(onMakeMove),
-          animationDurationInMs: 200,
+          animationDurationInMs: 220,
           darkSquareStyle: { backgroundColor: boardTheme.darkSquare },
           lightSquareStyle: { backgroundColor: boardTheme.lightSquare },
           boardStyle: {

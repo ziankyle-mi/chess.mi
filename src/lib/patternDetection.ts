@@ -120,26 +120,33 @@ export function detectTacticalPattern(
   }
 
   // 6. Inaccuracy or general mistake
-  if (evalLoss >= 300) {
+  if (evalLoss >= 200) {
     return {
       pattern: 'Blunder',
       explanation: bestMoveSan
-        ? `Severe blunder costing significant material. ${bestMoveSan} was the critical line.`
-        : `Severe blunder leaving opponent with a winning positional or material advantage.`
+        ? `Severe blunder costing decisive material. Stronger was ${bestMoveSan}.`
+        : `Severe blunder leaving opponent with a winning positional advantage.`
     }
-  } else if (evalLoss >= 150) {
+  } else if (evalLoss >= 90) {
     return {
       pattern: 'Mistake',
       explanation: bestMoveSan
-        ? `Concedes the advantage. Stronger was ${bestMoveSan} to maintain central pressure.`
-        : `Positional mistake that weakens the pawn structure and coordination.`
+        ? `Tactical mistake conceding the initiative. Better was ${bestMoveSan}.`
+        : `Positional mistake that weakens pawn structure and piece coordination.`
     }
-  } else if (evalLoss >= 75) {
+  } else if (evalLoss >= 45) {
     return {
       pattern: 'Inaccuracy',
       explanation: bestMoveSan
-        ? `Slightly imprecise move. Better was ${bestMoveSan} to optimize piece placement.`
-        : `Minor inaccuracy giving opponent easier piece activity.`
+        ? `Imprecise move. Better was ${bestMoveSan} to optimize piece placement.`
+        : `Minor inaccuracy conceding active squares to opponent.`
+    }
+  } else if (evalLoss >= 18) {
+    return {
+      pattern: 'Good Move',
+      explanation: bestMoveSan
+        ? `Playable move, though ${bestMoveSan} kept tighter control.`
+        : `Solid move maintaining a balanced position.`
     }
   }
 
@@ -160,7 +167,7 @@ export function detectTacticalPattern(
 
   return {
     pattern: 'Best Move',
-    explanation: 'Strong engine-recommended move maintaining optimal piece activity and board control.'
+    explanation: 'Optimal engine-recommended move maintaining piece activity and board control.'
   }
 }
 

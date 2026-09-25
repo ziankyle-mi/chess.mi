@@ -175,8 +175,58 @@ class StockfishEngine {
         timer
       }
 
+      this.worker?.postMessage('setoption name UCI_LimitStrength value false')
       this.worker?.postMessage(`position fen ${fen}`)
       this.worker?.postMessage(`go depth ${depth}`)
+    })
+  }
+
+  public async getBotMove(fen: string, elo: number, moveTimeMs = 500): Promise<EngineEvalResult> {
+    const ready = await this.initEngine()
+    const clampedElo = Math.max(800, Math.min(2850, elo))
+
+    if (!ready || !this.worker) {
+      const staticRes = evaluateStaticFen(fen)
+      return {
+        eval: staticRes.eval,
+        bestMoveLan: staticRes.bestMoveLan,
+        engineUsed: 'fallback'
+      }
+    }
+
+    return new Promise((resolve) => {
+      if (this.currentJob) {
+        clearTimeout(this.currentJob.timer)
+        this.worker?.postMessage('stop')
+      }
+
+      const timer = setTimeout(() => {
+        if (this.currentJob) {
+          console.warn('Bot move timed out, using fallback evaluator')
+          this.worker?.postMessage('stop')
+          const staticRes = evaluateStaticFen(fen)
+          resolve({
+            eval: staticRes.eval,
+            bestMoveLan: staticRes.bestMoveLan,
+            engineUsed: 'fallback'
+          })
+          this.currentJob = null
+        }
+      }, moveTimeMs + 3500)
+
+      this.lastParsedEval = null
+      this.currentJob = {
+        fen,
+        depth: 10,
+        resolve,
+        reject: () => {},
+        timer
+      }
+
+      this.worker?.postMessage('setoption name UCI_LimitStrength value true')
+      this.worker?.postMessage(`setoption name UCI_Elo value ${clampedElo}`)
+      this.worker?.postMessage(`position fen ${fen}`)
+      this.worker?.postMessage(`go movetime ${moveTimeMs}`)
     })
   }
 

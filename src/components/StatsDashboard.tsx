@@ -1,7 +1,8 @@
 import type { ParsedMove } from '../lib/pgnParser'
 import type { AnalyzedGameRecord, AggregateStats } from '../lib/progressStore'
 import { aggregateGameAccuracy } from '../engine/classifyMove'
-import { BarChart3, TrendingUp, History, Trash2 } from 'lucide-react'
+import { getSampleConfidence } from '../lib/confidence'
+import { History, Trash2 } from 'lucide-react'
 
 const CLASS_COLORS: Record<string, string> = {
   book: '#a78bfa',
@@ -74,38 +75,38 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
     <div className="rounded-lg p-5 space-y-6" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-subtle)' }}>
       {/* Accuracy Cards */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Game Accuracy</h3>
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Game accuracy</h3>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           {[
-            { name: whitePlayer, acc: whiteAccuracy, acpl: whiteAcpl, side: 'White', symbol: '♔', bg: '#e8e6e3', fg: '#312e2b' },
-            { name: blackPlayer, acc: blackAccuracy, acpl: blackAcpl, side: 'Black', symbol: '♚', bg: '#312e2b', fg: '#e8e6e3' }
+            { name: whitePlayer, acc: whiteAccuracy, acpl: whiteAcpl, moves: whiteMoves.length, side: 'White', symbol: '♔', bg: '#e8e6e3', fg: '#312e2b' },
+            { name: blackPlayer, acc: blackAccuracy, acpl: blackAcpl, moves: blackMoves.length, side: 'Black', symbol: '♚', bg: '#312e2b', fg: '#e8e6e3' }
           ].map((p) => (
             <div key={p.side} className="p-4 rounded-lg" style={{ background: 'var(--bg-elevated)' }}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold" style={{ background: p.bg, color: p.fg }}>{p.symbol}</span>
                 <span className="text-xs font-medium truncate" style={{ color: 'var(--text-secondary)' }}>{p.name}</span>
               </div>
-              <div className="flex items-baseline gap-1.5">
+              <div className="flex items-baseline gap-1.5 flex-wrap">
                 <span className="text-3xl font-bold font-mono" style={{ color: 'var(--text)' }}>{p.acc}%</span>
+                <span className="text-xs font-mono text-[var(--text-muted)]">({p.moves} moves)</span>
               </div>
-              <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>ACPL: {p.acpl}</span>
+              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>Average loss: {p.acpl} cp</span>
             </div>
           ))}
         </div>
 
         {/* Classification table */}
         <div className="rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
-          <div className="grid grid-cols-[1fr_60px_60px] p-2 text-[10px] font-semibold uppercase" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+          <div className="grid grid-cols-[1fr_80px_80px] p-2 text-xs font-medium" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
             <span>Classification</span>
-            <span className="text-center">W</span>
-            <span className="text-center">B</span>
+            <span className="text-center font-mono">White ({whiteMoves.length})</span>
+            <span className="text-center font-mono">Black ({blackMoves.length})</span>
           </div>
           {classRows.map((row) => (
-            <div key={row.key} className="grid grid-cols-[1fr_60px_60px] p-2 text-xs items-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+            <div key={row.key} className="grid grid-cols-[1fr_80px_80px] p-2 text-xs items-center" style={{ borderTop: '1px solid var(--border-subtle)' }}>
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />
                 <span style={{ color: 'var(--text-secondary)' }}>{row.label}</span>
@@ -114,17 +115,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <span className="text-center font-mono font-bold" style={{ color: 'var(--text)' }}>{countMoves(blackMoves, row.key)}</span>
             </div>
           ))}
+          <div className="grid grid-cols-[1fr_80px_80px] p-2 text-xs font-semibold" style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Total moves evaluated</span>
+            <span className="text-center font-mono" style={{ color: 'var(--text)' }}>{whiteMoves.length}</span>
+            <span className="text-center font-mono" style={{ color: 'var(--text)' }}>{blackMoves.length}</span>
+          </div>
         </div>
       </div>
 
       {/* Trend Chart */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            <h4 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>ACPL Trend (Last 20)</h4>
-          </div>
-          <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>Avg: {aggregateStats.avgAcplLast20}</span>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h4 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Centipawn loss trend</h4>
+          <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+            Average: {aggregateStats.avgAcplLast20} cp · {getSampleConfidence(aggregateStats.totalGames).caption}
+          </span>
         </div>
         {aggregateStats.trendData.length < 2 ? (
           <div className="p-6 rounded-lg text-center text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
@@ -138,9 +143,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       </div>
 
       {recentGames.length > 0 && (
-        <div className="pt-3 flex items-center justify-between text-xs" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
-          <span className="flex items-center gap-1"><History className="w-3.5 h-3.5" />{recentGames.length} stored locally</span>
-          <button onClick={onClearHistory} className="flex items-center gap-1 transition-colors hover:opacity-80">
+        <div className="pt-3 flex items-center justify-between text-xs font-mono" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+          <span className="flex items-center gap-1">
+            <History className="w-3.5 h-3.5" />
+            {recentGames.length} games stored locally ({getSampleConfidence(recentGames.length).label.toLowerCase()})
+          </span>
+          <button onClick={onClearHistory} className="flex items-center gap-1 transition-colors hover:opacity-80 cursor-pointer">
             <Trash2 className="w-3.5 h-3.5" /> Clear
           </button>
         </div>

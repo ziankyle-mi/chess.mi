@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import type { ParsedMove } from '../lib/pgnParser'
 import { generateGameReviewReport } from '../lib/ratingCalculator'
 import { ClassificationBadge } from './ClassificationBadge'
-import { Swords, ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 interface GameReviewReportProps {
   moves: ParsedMove[]
@@ -197,7 +197,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </div>
 
             <div className="text-center px-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">VS</span>
+              <span className="text-xs text-[var(--text-muted)] font-medium">vs</span>
             </div>
 
             {/* Black Player */}
@@ -236,7 +236,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </div>
 
             <div className="text-center px-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
                 Accuracy
               </span>
             </div>
@@ -259,7 +259,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </div>
 
             <div className="text-center px-2">
-              <span className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              <span className="text-[11px] font-medium text-[var(--text-muted)]">
                 Open · Mid · End
               </span>
             </div>
@@ -308,7 +308,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
 
                     {/* Move Category */}
                     <div className="flex items-center justify-center gap-1.5">
-                      <ClassificationBadge classification={row.key} size={14} />
+                      <ClassificationBadge classification={row.key} size={14} forceShow />
                       <span className="font-medium text-xs text-[var(--text-secondary)]">{row.label}</span>
                     </div>
 
@@ -344,7 +344,7 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
             </div>
 
             <div className="text-center px-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
                 Performance
               </span>
             </div>
@@ -364,14 +364,13 @@ export const GameReviewReport: React.FC<GameReviewReportProps> = ({
       {/* CTA — standalone, no card wrapper */}
       <button
         onClick={onReviewMoves}
-        className="w-full py-2.5 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm active:scale-98 cursor-pointer"
+        className="w-full py-2.5 rounded-lg font-semibold text-xs sm:text-sm flex items-center justify-center transition-all shadow-sm active:scale-98 cursor-pointer"
         style={{
           background: 'var(--accent)',
           color: 'var(--accent-text)'
         }}
       >
-        <Swords className="w-4 h-4" />
-        <span>Review Moves on Board</span>
+        <span>Review moves on board</span>
       </button>
     </div>
   )

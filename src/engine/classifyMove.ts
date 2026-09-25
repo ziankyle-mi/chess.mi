@@ -1,6 +1,7 @@
 import type { ParsedMove, MoveClassification } from '../lib/pgnParser'
 import openingsData from '../data/openings.json'
 import { detectTacticalPattern } from '../lib/patternDetection'
+import { isTheoryPosition, lookupTheoryMove } from './openingTheory'
 import { Chess } from 'chess.js'
 
 const openingsDict = openingsData as Record<string, { eco: string; name: string }>
@@ -10,6 +11,14 @@ export function identifyOpening(moves: ParsedMove[]): { eco: string; name: strin
 
   // Check each position along the move history to find the deepest recognized book line
   for (let i = Math.min(moves.length - 1, 25); i >= 0; i--) {
+    const theoryRes = lookupTheoryMove(moves[i].fenBefore, moves[i].san, moves[i].fenAfter)
+    if (theoryRes.openingName && theoryRes.openingName !== 'Opening Theory' && theoryRes.openingName !== 'Standard Opening') {
+      return {
+        eco: theoryRes.eco || 'A00',
+        name: theoryRes.openingName
+      }
+    }
+
     const fen = moves[i].fenAfter
     const key = fen.split(' ').slice(0, 3).join(' ')
     if (openingsDict[key]) {
@@ -27,8 +36,7 @@ export function identifyOpening(moves: ParsedMove[]): { eco: string; name: strin
 }
 
 export function isBookPosition(fen: string): boolean {
-  const key = fen.split(' ').slice(0, 3).join(' ')
-  return Boolean(openingsDict[key])
+  return isTheoryPosition(fen)
 }
 
 /**
@@ -75,25 +83,13 @@ export function winLossToMoveAccuracy(winPercentLoss: number): number {
 
 /**
  * STEP 4 — Aggregate per-move accuracy into one game accuracy score:
- * Combines plain average with harmonic mean: (arithmeticMean + harmonicMean) / 2
- * This accounts for consistency and punishes low outliers (blunders/mistakes)
- * so that single game-losing mistakes are not buried by a quiet rest of the game.
+ * Plain arithmetic average of move accuracies (matching Chess.com behavior).
+ * Avoids harmonic mean over-penalizing occasional errors in otherwise strong games.
  */
 export function aggregateGameAccuracy(moveAccuracies: number[]): number {
   if (moveAccuracies.length === 0) return 100
-
-  // 1. Plain arithmetic average
   const sum = moveAccuracies.reduce((acc, a) => acc + a, 0)
-  const arithmeticMean = sum / moveAccuracies.length
-
-  // 2. Harmonic mean: N / sum(1 / max(1, a_i))
-  // Clamped to at least 1 to avoid division by zero
-  const harmonicDenominator = moveAccuracies.reduce((denom, a) => denom + (1 / Math.max(1, a)), 0)
-  const harmonicMean = harmonicDenominator > 0 ? moveAccuracies.length / harmonicDenominator : arithmeticMean
-
-  // 3. Balanced combination punishing outliers
-  const combined = (arithmeticMean + harmonicMean) / 2
-  return Math.min(100, Math.max(0, Math.round(combined * 10) / 10))
+  return Math.min(100, Math.max(0, Math.round((sum / moveAccuracies.length) * 10) / 10))
 }
 
 export function classifySingleMove(
@@ -140,34 +136,84 @@ export function classifySingleMove(
   const playedLan = move.lan.toLowerCase()
   const engineLan = bestMoveLan?.toLowerCase()
 
+  const isOpening = move.moveNumber <= 15
+  const theoryResult = lookupTheoryMove(move.fenBefore, move.san, move.fenAfter)
+
+  // A move is candidate Book ONLY if:
+  // 1. It belongs to curated master theory (THEORY_LINES)
+  // 2. It does NOT lose substantial evaluation (evalLoss <= 20 centipawns and winLoss <= 2.0%)
+  // Extends book immunity up to move 20 for identified theory positions.
+  const bookCutoff = theoryResult.isBook ? 20 : 15
+  const isSoundTheory =
+    (theoryResult.isBook || isBook) &&
+    move.moveNumber <= bookCutoff &&
+    evalLoss <= 20 &&
+    winLoss <= 2.0
+
+  // Phase-aware error thresholds (Chess.com style: lenient in opening)
+  const inaccuracyWinLoss = move.moveNumber <= 10 ? 7.0 : move.moveNumber <= 20 ? 5.5 : 4.0
+  const inaccuracyCp = move.moveNumber <= 10 ? 80 : move.moveNumber <= 20 ? 60 : 45
+  const mistakeWinLoss = move.moveNumber <= 10 ? 14.0 : move.moveNumber <= 20 ? 11.0 : 8.5
+  const mistakeCp = move.moveNumber <= 10 ? 150 : move.moveNumber <= 20 ? 120 : 90
+  const blunderWinLoss = move.moveNumber <= 10 ? 25.0 : move.moveNumber <= 20 ? 21.0 : 18.0
+  const blunderCp = move.moveNumber <= 10 ? 250 : move.moveNumber <= 20 ? 220 : 200
+
+  // Tactical pattern detection
+  let patternResult = detectTacticalPattern(move, evalLoss, bestMoveSan, bestMoveLan)
+  const isHangingPieceBlunder = patternResult.pattern === 'Hanging Piece' && evalLoss >= 150
+  const isCheckmateAllowed = patternResult.pattern === 'Allowed Checkmate'
+
   let classification: MoveClassification = 'good'
 
-  // Consistent classification thresholds strictly derived from winPercentLoss:
-  if (isBook && move.moveNumber <= 12) {
+  // 1. Engine Top Choice
+  if (engineLan && playedLan === engineLan) {
+    classification = 'best'
+    moveAccuracy = 100
+  }
+  // 2. Validated Sound Grandmaster Book Move
+  else if (isSoundTheory) {
     classification = 'book'
     moveAccuracy = 100
-  } else if (engineLan && playedLan === engineLan) {
-    classification = 'best'
-    moveAccuracy = 100
-  } else if (winLoss <= 0.5) {
-    classification = 'best'
-    moveAccuracy = 100
-  } else if (winLoss <= 2.0) {
-    classification = 'great'
-  } else if (winLoss <= 5.0) {
-    classification = 'good'
-  } else if (winLoss <= 12.0) {
-    classification = 'inaccuracy'
-  } else if (winLoss <= 25.0) {
-    // If player had a decisive winning advantage and failed to find the tactic:
+  }
+  // 3. Allowed Immediate Checkmate
+  else if (isCheckmateAllowed) {
+    classification = 'blunder'
+    moveAccuracy = 0
+  }
+  // 4. Blunder (??): severe eval loss, hanging piece, or catastrophic collapse
+  else if (isHangingPieceBlunder || winLoss >= blunderWinLoss || evalLoss >= blunderCp) {
+    classification = 'blunder'
+    moveAccuracy = Math.min(25, winLossToMoveAccuracy(winLoss))
+  }
+  // 5. Mistake (?) or Miss: substantial loss of 1-2 pawns or blowing a won game
+  else if (winLoss >= mistakeWinLoss || evalLoss >= mistakeCp) {
     const playerEvalBefore = move.color === 'w' ? evalBefore : -evalBefore
-    if (playerEvalBefore >= 200) {
+    if (playerEvalBefore >= 200 && evalLoss >= 100) {
       classification = 'miss'
     } else {
       classification = 'mistake'
     }
+  }
+  // 6. Inaccuracy (?!): drop of roughly 45-90 centipawns (phase-aware)
+  else if (winLoss >= inaccuracyWinLoss || evalLoss >= inaccuracyCp) {
+    classification = 'inaccuracy'
+  }
+  // 7. Good: solid playable move (eval loss roughly 18-45 cp)
+  else if (winLoss >= 1.8 || evalLoss >= 18) {
+    classification = 'good'
+  }
+  // 8. Great / Excellent: close to the top move (eval loss roughly 8-18 cp)
+  else if (winLoss > 0.6 || evalLoss > 8) {
+    classification = 'great'
+  }
+  // 9. Best: within 8cp AND is the actual engine top move. Otherwise 'great'.
+  // Prevents near-misses from getting the same stamp as a genuinely top move.
+  else if (engineLan && playedLan === engineLan) {
+    classification = 'best'
+    moveAccuracy = 100
   } else {
-    classification = 'blunder'
+    classification = 'great'
+    moveAccuracy = winLossToMoveAccuracy(winLoss)
   }
 
   // Critical moment detection: decisive win swing or sign flip across equality
@@ -176,13 +222,34 @@ export function classifySingleMove(
     (evalBefore > 120 && evalAfter < -80) ||
     (evalBefore < -120 && evalAfter > 80)
 
-  // Plain-English explanation
-  let patternResult = detectTacticalPattern(move, evalLoss, bestMoveSan, bestMoveLan)
+  // Plain-English explanation refinement
 
   if (classification === 'book') {
+    const bookExplanation =
+      theoryResult.purpose ||
+      (theoryResult.openingName
+        ? `Established theory in the ${theoryResult.openingName} contesting key central squares.`
+        : 'Established opening theory contesting key central squares according to grandmaster praxis.')
     patternResult = {
       pattern: 'Book Move',
-      explanation: 'Established opening theory contesting key central squares according to grandmaster praxis.'
+      explanation: bookExplanation
+    }
+  } else if (
+    isOpening &&
+    theoryResult.deviation &&
+    ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(classification)
+  ) {
+    // Left known book with a suboptimal move - explain the deviation itself
+    const dev = theoryResult.deviation
+    const bookChoice = dev.recommendedMove
+    const bookPurpose = dev.recommendedPurpose ? ` (${dev.recommendedPurpose})` : ''
+    const consequence = patternResult.explanation
+      ? patternResult.explanation.charAt(0).toLowerCase() + patternResult.explanation.slice(1).replace(/\.+$/, '')
+      : 'concedes central harmony'
+
+    patternResult = {
+      pattern: 'Opening Deviation',
+      explanation: `Deviates from standard ${dev.openingName} theory. The book move was ${bookChoice}${bookPurpose}. Playing ${move.san} leaves theory and ${consequence}.`
     }
   }
 

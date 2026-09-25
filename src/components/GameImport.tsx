@@ -9,10 +9,8 @@ import { SAMPLE_GAMES } from '../lib/pgnParser'
 import {
   Search,
   FileText,
-  Sparkles,
   Loader2,
   Clock,
-  Trophy,
   Zap,
   Timer,
   Flame,
@@ -64,7 +62,7 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
   const tabItems = [
     { id: 'online' as const, label: 'Chess.com / Lichess', icon: Search },
     { id: 'pgn' as const, label: 'Paste PGN', icon: FileText },
-    { id: 'samples' as const, label: 'Samples', icon: Sparkles }
+    { id: 'samples' as const, label: 'Samples' }
   ]
 
   return (
@@ -82,7 +80,7 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
               borderBottom: activeTab === id ? '2px solid var(--accent)' : '2px solid transparent'
             }}
           >
-            <Icon className="w-4 h-4" />
+            {Icon && <Icon className="w-4 h-4" />}
             {label}
           </button>
         ))}
@@ -218,13 +216,12 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
                   <div className="flex flex-col gap-1 min-w-0 pr-3">
                     <div className="flex items-center gap-2 text-xs">
                       <span
-                        className="text-[10px] px-1.5 py-0.5 rounded font-bold font-mono"
+                        className="text-xs font-semibold font-mono"
                         style={{
-                          background: game.playerResult === 'win' ? '#81b64c' : game.playerResult === 'loss' ? '#ef4444' : 'var(--text-muted)',
-                          color: '#fff'
+                          color: game.playerResult === 'win' ? '#81b64c' : game.playerResult === 'loss' ? '#ef4444' : 'var(--text-muted)'
                         }}
                       >
-                        {game.playerResult.toUpperCase()}
+                        {game.playerResult === 'win' ? 'Win' : game.playerResult === 'loss' ? 'Loss' : 'Draw'}
                       </span>
                       <span className="font-semibold truncate text-[var(--text)]">
                         vs {game.opponentUsername} ({game.opponentRating})
@@ -243,7 +240,7 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
                         {game.timeClass.toLowerCase() === 'rapid' && <Timer className="w-3 h-3" />}
                         {game.timeClass.toLowerCase() === 'bullet' && <Flame className="w-3 h-3" />}
                         {!['blitz', 'rapid', 'bullet'].includes(game.timeClass.toLowerCase()) && <Clock className="w-3 h-3" />}
-                        <span>{game.timeClass.toUpperCase()} ({game.timeControl})</span>
+                        <span className="capitalize">{game.timeClass} ({game.timeControl})</span>
                       </span>
                       <span>{game.dateString}</span>
                       <span className="capitalize">{game.playerColor}</span>
@@ -299,7 +296,6 @@ export const GameImport: React.FC<GameImportProps> = ({ onLoadPgn, currentLoadin
             >
               <div className="flex-1 pr-2 min-w-0">
                 <div className="flex items-center gap-2 text-xs font-bold" style={{ color: 'var(--text)' }}>
-                  <Trophy className="w-3.5 h-3.5 shrink-0 text-[var(--accent)]" />
                   <span className="truncate">{sample.title}</span>
                   {(sample as any).category && (
                     <span

@@ -100,19 +100,59 @@ export function evaluateStaticFen(fen: string): { eval: number; bestMoveLan?: st
     return { eval: 0 }
   }
 
-  // 1-ply search with static evaluation
-  const legalMoves = chess.moves({ verbose: true })
-  if (legalMoves.length === 0) return { eval: 0 }
-
   const turn = chess.turn()
+  const legalMoves = chess.moves({ verbose: true })
+  if (legalMoves.length === 0) return { eval: getBoardScore(chess) }
+
+  // --- Fix A + B: True 2-ply negamax ---
+  // For each candidate move for the side to move, play it, then find the
+  // opponent's best reply (1-ply), and return the score AFTER both.
+  // This gives a real minimax estimate, not just the raw PST snapshot.
+
   let bestScore = turn === 'w' ? -99999 : 99999
   let bestMove = legalMoves[0]
 
   for (const move of legalMoves) {
     chess.move(move)
-    const score = getBoardScore(chess)
+
+    let score: number
+
+    if (chess.isCheckmate()) {
+      // This move checkmates the opponent — it's the absolute best
+      score = turn === 'w' ? 9900 : -9900
+    } else if (chess.isDraw() || chess.isStalemate() || chess.isInsufficientMaterial()) {
+      score = 0
+    } else {
+      // 1-ply opponent reply: find their best move and score after it
+      const replies = chess.moves({ verbose: true })
+
+      if (replies.length === 0) {
+        score = getBoardScore(chess)
+      } else {
+        // Opponent minimizes (if original turn was white) or maximizes (if black)
+        let replyBest = turn === 'w' ? 99999 : -99999
+
+        for (const reply of replies) {
+          chess.move(reply)
+          const replyScore = getBoardScore(chess)
+          chess.undo()
+
+          if (turn === 'w') {
+            // Opponent (black) minimizes
+            if (replyScore < replyBest) replyBest = replyScore
+          } else {
+            // Opponent (white) maximizes
+            if (replyScore > replyBest) replyBest = replyScore
+          }
+        }
+
+        score = replyBest
+      }
+    }
+
     chess.undo()
 
+    // White maximizes, black minimizes
     if (turn === 'w') {
       if (score > bestScore) {
         bestScore = score
@@ -127,6 +167,7 @@ export function evaluateStaticFen(fen: string): { eval: number; bestMoveLan?: st
   }
 
   return {
+    // Fix A: return the true minimax score (best achievable outcome) not the raw board score
     eval: bestScore,
     bestMoveLan: bestMove.lan,
     bestMoveSan: bestMove.san

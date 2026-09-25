@@ -248,7 +248,7 @@ export const MoveList: React.FC<MoveListProps> = ({
                 fontWeight: selectedFilter === 'great' ? 600 : 500
               }}
             >
-              <ClassificationBadge classification="great" size={15} />
+              <ClassificationBadge classification="great" size={15} forceShow />
               <span>Great ({classCounts.great})</span>
             </button>
           )}

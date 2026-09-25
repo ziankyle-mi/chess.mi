@@ -179,7 +179,7 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
       {/* Classification & Mode Header Bar */}
       <div className="flex items-center justify-between px-3.5 py-2" style={{ borderBottom: `2px solid ${classColor}` }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <ClassificationBadge classification={classification} size={26} />
+          <ClassificationBadge classification={classification} size={26} forceShow />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-mono font-bold text-sm tracking-tight" style={{ color: 'var(--text)' }}>
@@ -189,7 +189,7 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
                 {classLabel}
               </span>
               {isExploration && (
-                <span className="text-[10px] uppercase font-mono px-1 rounded font-semibold" style={{ background: 'var(--accent)', color: '#000' }}>
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
                   Variation
                 </span>
               )}
@@ -201,11 +201,11 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
           </div>
         </div>
 
-        {/* Toggle between In-Depth Coach & Concise modes */}
+        {/* Toggle between Coach & Concise modes */}
         <div className="flex items-center p-0.5 rounded shrink-0 select-none text-[11px]" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
           <button
             onClick={() => handleModeChange('concise')}
-            className="px-2 py-0.5 rounded font-medium transition-all cursor-pointer"
+            className="px-2.5 py-0.5 rounded font-medium transition-all cursor-pointer"
             style={{
               background: explanationMode === 'concise' ? 'var(--bg-panel)' : 'transparent',
               color: explanationMode === 'concise' ? 'var(--text)' : 'var(--text-muted)',
@@ -217,15 +217,15 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
           </button>
           <button
             onClick={() => handleModeChange('depth')}
-            className="px-2 py-0.5 rounded font-medium transition-all cursor-pointer"
+            className="px-2.5 py-0.5 rounded font-medium transition-all cursor-pointer"
             style={{
               background: explanationMode === 'depth' ? 'var(--bg-panel)' : 'transparent',
               color: explanationMode === 'depth' ? 'var(--accent)' : 'var(--text-muted)',
               boxShadow: explanationMode === 'depth' ? '0 1px 2px rgba(0,0,0,0.2)' : 'none'
             }}
-            title="In-depth tactical coach breakdown"
+            title="Tactical coach breakdown"
           >
-            In-Depth Coach
+            Coach
           </button>
         </div>
       </div>
@@ -235,12 +235,9 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
         <div className="px-3.5 py-2 flex-1 flex flex-col justify-between overflow-hidden">
           {/* Row 1: Tactical headline & role */}
           <div className="flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="text-[10px] uppercase font-mono font-semibold px-1.5 py-0.5 rounded tracking-wide shrink-0"
-                style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)' }}
-              >
-                {deep.tacticalRole}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-medium shrink-0" style={{ color: 'var(--text-muted)' }}>
+                {deep.tacticalRole} ·
               </span>
               <h4 className="text-xs font-semibold leading-tight truncate" style={{ color: 'var(--text)' }} title={deep.headline}>
                 {deep.headline}

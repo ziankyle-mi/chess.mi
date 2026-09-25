@@ -1,25 +1,15 @@
 import React, { useState, useRef } from 'react'
 import {
-  Compass,
-  Target,
-  User,
-  Sparkles,
-  ShieldCheck,
-  Crosshair,
-  Check,
-  BookOpen,
-  Swords,
-  Crown,
   Edit2,
   RefreshCw,
   Loader2,
-  History,
   ArrowRight
 } from 'lucide-react'
 import {
   type AggregateStats,
   type AnalyzedGameRecord
 } from '../lib/progressStore'
+import { getSampleConfidence } from '../lib/confidence'
 import { syncChesscom20Games } from '../lib/chesscomApi'
 
 interface StudyNextProps {
@@ -97,31 +87,23 @@ export const StudyNext: React.FC<StudyNextProps> = ({
   const userStats = aggregateStats.userStats
 
   return (
-    <div className="w-full flex flex-col gap-5 select-none font-sans max-w-4xl mx-auto">
-      {/* Account Setup / Header Card */}
+    <div className="w-full flex flex-col gap-5 select-none font-sans max-w-5xl mx-auto py-2">
+      {/* Account Setup & Performance Header */}
       <div
-        className="rounded-xl p-5 border shadow-sm flex flex-col gap-4"
+        className="rounded-xl p-5 border flex flex-col gap-4"
         style={{
           background: 'var(--bg-panel)',
           borderColor: 'var(--border-subtle)'
         }}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-sm shadow-sm"
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
-            >
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--text)' }}>
-                Personalized Chess Coach
-              </h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                Game phase analysis, tactical leaks, and custom study plans
-              </p>
-            </div>
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--text)' }}>
+              Personalized Coach
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Phase analysis, tactical leaks, and training priorities
+            </p>
           </div>
 
           {userAccount && !isEditing && (
@@ -135,29 +117,22 @@ export const StudyNext: React.FC<StudyNextProps> = ({
               }}
             >
               <Edit2 className="w-3.5 h-3.5" />
-              <span>Change Account</span>
+              <span>Change account</span>
             </button>
           )}
         </div>
 
         {/* Account Linking State */}
         {isEditing ? (
-          <div
-            className="p-4 rounded-lg flex flex-col gap-3"
-            style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-subtle)'
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-[var(--accent)]" />
-              <span className="text-xs font-semibold text-[var(--text)]">
-                Link Your Account to Track Strengths & Weaknesses
+          <div className="flex flex-col gap-3 pt-1">
+            <div>
+              <span className="text-xs font-semibold text-[var(--text)] block">
+                Link your account to track performance
               </span>
+              <p className="text-xs leading-relaxed text-[var(--text-secondary)] mt-0.5">
+                Enter your Chess.com, Lichess, or tournament handle to isolate your moves across analyzed games.
+              </p>
             </div>
-            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-              Enter your Chess.com, Lichess, or tournament username. The coach will isolate your moves across all analyzed games to diagnose your openings, middlegames, and endgames.
-            </p>
 
             <form onSubmit={handleSave} className="flex gap-2">
               <input
@@ -178,19 +153,19 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                 className="px-4 py-2 rounded-md text-xs font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50"
                 style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
               >
-                Track Account
+                Track account
               </button>
             </form>
 
             {/* Quick Suggestions from Current Game */}
             {(currentGameWhite || currentGameBlack) && (
-              <div className="flex items-center gap-2 pt-1 flex-wrap">
-                <span className="text-[11px] text-[var(--text-muted)]">Detected in current game:</span>
+              <div className="flex items-center gap-2 pt-1 flex-wrap text-xs">
+                <span className="text-[var(--text-muted)]">Detected in current game:</span>
                 {currentGameWhite && (
                   <button
                     type="button"
                     onClick={() => handleQuickSelect(currentGameWhite)}
-                    className="px-2 py-0.5 rounded text-[11px] font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
                   >
                     ♔ {currentGameWhite} (White)
                   </button>
@@ -199,7 +174,7 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                   <button
                     type="button"
                     onClick={() => handleQuickSelect(currentGameBlack)}
-                    className="px-2 py-0.5 rounded text-[11px] font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded text-xs font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] transition-colors cursor-pointer"
                   >
                     ♚ {currentGameBlack} (Black)
                   </button>
@@ -208,146 +183,135 @@ export const StudyNext: React.FC<StudyNextProps> = ({
             )}
           </div>
         ) : (
-          <div
-            className="p-3 sm:p-4 rounded-lg flex flex-col gap-3"
-            style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-subtle)'
-            }}
-          >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-base shadow-sm shrink-0"
-                  style={{
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text)'
-                  }}
-                >
-                  {(userAccount[0] || 'U').toUpperCase()}
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-[var(--text)]">{userAccount}</span>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded font-mono font-medium border border-[var(--border-subtle)] text-[var(--text-muted)] bg-[var(--bg-elevated)]"
-                    >
-                      Rolling 20 FIFO
-                    </span>
-                  </div>
-                  <span className="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
-                    {userStats ? `${userStats.gamesPlayed} of 20 games tracked` : `${analyzedCount} total games in library`}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/profile.jpg"
+                alt={userAccount || 'Profile'}
+                className="w-10 h-10 rounded-full object-cover shrink-0 border border-[var(--border)] shadow-sm"
+              />
+              <div className="flex flex-col">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-semibold text-sm text-[var(--text)]">{userAccount}</span>
+                  <span className="text-xs text-[var(--text-muted)] font-mono">
+                    20-game rolling window
                   </span>
                 </div>
-              </div>
-
-              {/* Sync 20 Games Action */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSync20Games()}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50"
-                  style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
-                  title="Fetch and analyze your latest 20 games from Chess.com into your 20-game rolling window"
-                >
-                  {isSyncing ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Syncing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Sync Latest 20 Games</span>
-                    </>
-                  )}
-                </button>
+                <span className="text-xs text-[var(--text-muted)] mt-0.5 font-mono">
+                  {userStats
+                    ? `${userStats.gamesPlayed} of 20 games tracked · ${getSampleConfidence(userStats.gamesPlayed).label.toLowerCase()}`
+                    : `${analyzedCount} total games in library`}
+                </span>
               </div>
             </div>
 
-            {/* Sync Progress / Status Banner */}
-            {isSyncing && (
-              <div className="w-full px-3.5 py-2.5 rounded-lg flex items-center justify-between text-xs bg-[var(--bg-elevated)] border border-[var(--accent)] text-[var(--text)] shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-[var(--accent)] shrink-0" />
-                  <span className="font-medium truncate">{syncStatus}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { cancelSyncRef.current = true }}
-                  className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text)] underline cursor-pointer shrink-0 ml-2"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {syncError && (
-              <div className="w-full px-3 py-2 rounded-lg text-xs bg-red-500/10 border border-red-500/30 text-red-400">
-                {syncError}
-              </div>
-            )}
-
-            {/* Quick Performance Metrics */}
-            {userStats ? (
-              <div className="flex items-center gap-3 text-xs w-full sm:w-auto justify-between sm:justify-end pt-1">
-                <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                  <span className="block text-[10px] text-[var(--text-muted)] font-medium">Record (20G)</span>
-                  <span className="font-mono font-bold text-xs text-[var(--text)]">
-                    {userStats.wins}W - {userStats.losses}L - {userStats.draws}D
-                  </span>
-                </div>
-                <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                  <span className="block text-[10px] text-[var(--text-muted)] font-medium">Win Rate</span>
-                  <span className="font-mono font-bold text-xs text-[var(--accent)]">
-                    {userStats.winRate}%
-                  </span>
-                </div>
-                <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                  <span className="block text-[10px] text-[var(--text-muted)] font-medium">Avg Accuracy</span>
-                  <span className="font-mono font-bold text-xs text-[var(--text)]">
-                    {userStats.avgAccuracy}%
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 text-xs w-full sm:w-auto justify-between sm:justify-end">
-                <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                  <span className="block text-[10px] text-[var(--text-muted)] font-medium">Avg Loss</span>
-                  <span className="font-mono font-bold text-xs text-[var(--text)]">
-                    {avgAcpl} cp
-                  </span>
-                </div>
-                <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                  <span className="block text-[10px] text-[var(--text-muted)] font-medium">Avg Elo</span>
-                  <span className="font-mono font-bold text-xs text-[var(--accent)]">
-                    {avgElo}
-                  </span>
-                </div>
-                {topPattern && (
-                  <div className="text-center px-3 py-1 rounded bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-                    <span className="block text-[10px] text-[var(--text-muted)] font-medium">Top Leak</span>
-                    <span className="font-mono font-bold text-xs text-[var(--text)]">
-                      {topPattern.pattern}
+            <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+              {userStats ? (
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <div>
+                    <span className="text-[var(--text-muted)] block text-[10px] font-sans">Record</span>
+                    <span className="font-semibold text-[var(--text)]">
+                      {userStats.wins}W - {userStats.losses}L - {userStats.draws}D
                     </span>
                   </div>
+                  <div className="w-[1px] h-6 bg-[var(--border-subtle)]" />
+                  <div>
+                    <span className="text-[var(--text-muted)] block text-[10px] font-sans">Win rate</span>
+                    <span className="font-semibold text-[var(--accent)]">
+                      {userStats.winRate}%{' '}
+                      <span className="text-[10px] text-[var(--text-muted)] font-sans font-normal">
+                        ({userStats.gamesPlayed}g)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="w-[1px] h-6 bg-[var(--border-subtle)]" />
+                  <div>
+                    <span className="text-[var(--text-muted)] block text-[10px] font-sans">Accuracy</span>
+                    <span className="font-semibold text-[var(--text)]">
+                      {userStats.avgAccuracy}%{' '}
+                      <span className="text-[10px] text-[var(--text-muted)] font-sans font-normal">
+                        ({userStats.gamesPlayed}g)
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <div>
+                    <span className="text-[var(--text-muted)] block text-[10px] font-sans">Avg loss</span>
+                    <span className="font-semibold text-[var(--text)]">{avgAcpl} cp</span>
+                  </div>
+                  <div className="w-[1px] h-6 bg-[var(--border-subtle)]" />
+                  <div>
+                    <span className="text-[var(--text-muted)] block text-[10px] font-sans">Avg Elo</span>
+                    <span className="font-semibold text-[var(--accent)]">{avgElo}</span>
+                  </div>
+                  {topPattern && (
+                    <>
+                      <div className="w-[1px] h-6 bg-[var(--border-subtle)]" />
+                      <div>
+                        <span className="text-[var(--text-muted)] block text-[10px] font-sans">Top leak</span>
+                        <span className="font-semibold text-[var(--text)]">{topPattern.pattern}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => handleSync20Games()}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-all active:scale-95 disabled:opacity-50 shrink-0"
+                style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
+              >
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Syncing...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Sync latest 20</span>
+                  </>
                 )}
-              </div>
-            )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sync Status Banner */}
+        {isSyncing && (
+          <div className="w-full px-3.5 py-2 rounded-lg flex items-center justify-between text-xs bg-[var(--bg-elevated)] border border-[var(--accent)] text-[var(--text)]">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--accent)] shrink-0" />
+              <span className="font-medium truncate">{syncStatus}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => { cancelSyncRef.current = true }}
+              className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] underline cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {syncError && (
+          <div className="w-full px-3 py-2 rounded-lg text-xs bg-red-500/10 border border-red-500/30 text-red-400">
+            {syncError}
           </div>
         )}
       </div>
 
       {/* Game Phase Performance Diagnosis */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text)]">
-            <Compass className="w-4 h-4 text-[var(--accent)]" />
-            <span>Phase Performance Diagnosis</span>
-          </div>
-          <span className="text-[11px] text-[var(--text-muted)] font-mono">
+        <div className="flex items-baseline justify-between px-1">
+          <h3 className="text-sm font-semibold text-[var(--text)]">
+            Phase performance
+          </h3>
+          <span className="text-xs text-[var(--text-muted)] font-mono">
             Opening (1–12) · Middlegame (13–30) · Endgame (31+)
           </span>
         </div>
@@ -357,93 +321,99 @@ export const StudyNext: React.FC<StudyNextProps> = ({
             {
               key: 'opening' as const,
               title: 'Opening',
-              icon: BookOpen,
               data: userStats?.phases.opening || {
                 accuracy: 88.5,
                 blunders: 0,
                 movesCount: 240,
+                gamesCount: userStats?.gamesPlayed || 17,
                 status: 'strong' as const,
-                statusLabel: 'Strongest Phase',
-                summary: 'Solid opening principles. Controls central squares and develops pieces efficiently.'
+                statusLabel: 'Strongest phase',
+                summary: 'Disciplined piece development and early central control out of known setups.'
               }
             },
             {
               key: 'middlegame' as const,
               title: 'Middlegame',
-              icon: Swords,
               data: userStats?.phases.middlegame || {
                 accuracy: 74.2,
                 blunders: 2,
                 movesCount: 380,
+                gamesCount: userStats?.gamesPlayed || 17,
                 status: 'weak' as const,
-                statusLabel: 'Primary Focus',
-                summary: 'Complex tactical skirmishes cause rating drops. Calculation slips during open trades.'
+                statusLabel: 'Primary focus',
+                summary: 'Calculation slips during multi-piece liquidation and tactical exchanges.'
               }
             },
             {
               key: 'endgame' as const,
               title: 'Endgame',
-              icon: Crown,
               data: userStats?.phases.endgame || {
                 accuracy: 82.8,
                 blunders: 0,
                 movesCount: 160,
+                gamesCount: userStats?.gamesPlayed || 17,
                 status: 'solid' as const,
                 statusLabel: 'Developing',
-                summary: 'Reliable conversion in simplified positions with strong king activation.'
+                summary: 'Reliable conversion and king activity in simplified positions.'
               }
             }
           ].map((phase) => {
             const isFocus = phase.data.status === 'weak'
             const isStrong = phase.data.status === 'strong'
-            const IconComponent = phase.icon
+            const games = phase.data.gamesCount ?? userStats?.gamesPlayed ?? 1
+            const conf = getSampleConfidence(games)
 
             return (
               <div
                 key={phase.key}
-                className={`rounded-xl p-4.5 border flex flex-col justify-between gap-3 shadow-sm transition-all ${
-                  isFocus
-                    ? 'border-l-4 border-l-[var(--accent)] bg-[var(--bg-panel)]'
-                    : 'bg-[var(--bg-panel)] border-[var(--border-subtle)]'
-                }`}
+                className="rounded-xl p-4.5 border flex flex-col justify-between gap-3 shadow-sm transition-all"
+                style={{
+                  background: 'var(--bg-panel)',
+                  borderColor: isFocus ? 'var(--accent)' : 'var(--border-subtle)',
+                  opacity: conf.isLowSample ? 0.9 : 1
+                }}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <IconComponent className="w-4 h-4 text-[var(--text-secondary)]" />
-                      <span className="text-xs font-bold text-[var(--text)]">{phase.title}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[var(--text)]">{phase.title}</span>
+                      {conf.isLowSample && (
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          · early read
+                        </span>
+                      )}
                     </div>
-
-                    {isStrong ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#81b64c]/10 text-[#81b64c] border border-[#81b64c]/25">
-                        <Check className="w-2.5 h-2.5" />
-                        {phase.data.statusLabel}
-                      </span>
-                    ) : isFocus ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--text)]/10 text-[var(--text)] border border-[var(--border)]">
-                        <Target className="w-2.5 h-2.5 text-[var(--accent)]" />
-                        {phase.data.statusLabel}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                        {phase.data.statusLabel}
-                      </span>
-                    )}
+                    <span
+                      className={`text-xs font-medium ${
+                        isStrong
+                          ? 'text-[#81b64c]'
+                          : isFocus
+                          ? 'text-[var(--accent)] font-semibold'
+                          : 'text-[var(--text-muted)]'
+                      }`}
+                    >
+                      {phase.data.statusLabel}
+                    </span>
                   </div>
 
-                  {/* Accuracy Number — HERO per DESIGN.md */}
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className="font-mono text-3xl font-black text-[var(--text)] tracking-tight" style={{ fontFeatureSettings: '"tnum" 1' }}>
+                  {/* Accuracy Number — Primary Hero Element */}
+                  <div className="flex items-baseline gap-1.5 mb-2 flex-wrap">
+                    <span
+                      className="font-mono text-3xl font-black text-[var(--text)] tracking-tight"
+                      style={{ fontFeatureSettings: '"tnum" 1' }}
+                    >
                       {phase.data.accuracy}%
                     </span>
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">accuracy</span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">
+                      accuracy over {games}g
+                    </span>
                   </div>
 
-                  {/* Subdued progress bar */}
+                  {/* Progress Indicator */}
                   <div className="w-full h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden mb-2.5">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        isFocus ? 'bg-[var(--text-muted)]' : 'bg-[var(--accent)]'
+                        isFocus ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]'
                       }`}
                       style={{ width: `${Math.min(100, Math.max(10, phase.data.accuracy))}%` }}
                     />
@@ -454,15 +424,16 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                   </p>
                 </div>
 
-                <div
-                  className={`pt-2.5 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] ${
-                    phase.data.blunders === 0 ? 'opacity-40 text-[var(--text-muted)]' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  <span>Blunders in {phase.title}:</span>
-                  <span className="font-mono font-bold text-[var(--text)]">
-                    {phase.data.blunders}
+                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+                  <span className="font-mono">
+                    {phase.data.movesCount} moves · {games} game{games === 1 ? '' : 's'}
                   </span>
+                  <div className="flex items-center gap-1 font-mono">
+                    <span>Blunders:</span>
+                    <span className={`font-bold ${phase.data.blunders > 0 ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}>
+                      {phase.data.blunders}
+                    </span>
+                  </div>
                 </div>
               </div>
             )
@@ -470,129 +441,154 @@ export const StudyNext: React.FC<StudyNextProps> = ({
         </div>
       </div>
 
-      {/* Strengths & Weaknesses Comparison */}
+      {/* Strengths & Weaknesses Comparison — Flattened, Dynamic with Sample Size */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Strengths Card */}
         <div
-          className="rounded-xl p-5 border shadow-sm flex flex-col gap-3"
+          className="rounded-xl p-5 border flex flex-col gap-3"
           style={{
             background: 'var(--bg-panel)',
             borderColor: 'var(--border-subtle)'
           }}
         >
-          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
-            <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-              Tactical & Strategic Strengths
+          <div className="pb-2 border-b border-[var(--border-subtle)] flex items-baseline justify-between">
+            <h3 className="text-xs font-semibold text-[var(--text)]">
+              Tactical and strategic strengths
             </h3>
+            {userStats && (
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                {userStats.gamesPlayed}-game window
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            {(userStats?.strengths || [
-              'Opening Foundation (88.5% avg accuracy) — builds consistent, playable setups right out of the opening.',
-              'Endgame Composure (82.8% accuracy) — stays disciplined in simplified positions.',
-              'Initiative with White — capitalizes on first-move tempo to dictate game flow.'
-            ]).map((str, idx) => (
-              <div key={idx} className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-                <Check className="w-3.5 h-3.5 text-[var(--accent)] shrink-0 mt-0.5" />
-                <span>{str}</span>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2.5 text-xs text-[var(--text-secondary)] leading-relaxed">
+            {(userStats?.strengths && userStats.strengths.length > 0 ? userStats.strengths : [
+              'Opening Foundation (88.5% avg accuracy over 17 games) — builds consistent, playable setups right out of the opening.',
+              'Endgame Composure (82.8% accuracy, 0 blunders over 17 games) — stays disciplined in simplified positions.',
+              'Initiative with White (84.1% accuracy over 10 games) — capitalizes on first-move tempo to dictate game flow.'
+            ]).map((s, idx) => {
+              const [title, ...rest] = s.split(' — ')
+              return (
+                <div key={idx}>
+                  <strong className="text-[var(--text)] block font-medium">{title}</strong>
+                  {rest.length > 0 && <span>{rest.join(' — ')}</span>}
+                </div>
+              )
+            })}
           </div>
         </div>
 
         {/* Weaknesses Card */}
         <div
-          className="rounded-xl p-5 border shadow-sm flex flex-col gap-3"
+          className="rounded-xl p-5 border flex flex-col gap-3"
           style={{
             background: 'var(--bg-panel)',
             borderColor: 'var(--border-subtle)'
           }}
         >
-          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
-            <Crosshair className="w-4 h-4 text-[var(--text-muted)]" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-              Priority Rating Leaks
+          <div className="pb-2 border-b border-[var(--border-subtle)] flex items-baseline justify-between">
+            <h3 className="text-xs font-semibold text-[var(--text)]">
+              Priority rating leaks
             </h3>
+            {userStats && (
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                {userStats.gamesPlayed}-game window
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2.5">
-            {(userStats?.weaknesses || [
-              'Middlegame Tactics — material lost during multi-piece exchanges between moves 13–30.',
-              'Overlooking undefended minor pieces before locking in candidate moves.',
-              'Defensive Repertoire with Black — finding counterplay against aggressive setups.'
-            ]).map((leak, idx) => (
-              <div key={idx} className="flex items-start gap-2.5 text-xs leading-relaxed text-[var(--text-secondary)]">
-                <Target className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 mt-0.5" />
-                <span>{leak}</span>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2.5 text-xs text-[var(--text-secondary)] leading-relaxed">
+            {(userStats?.weaknesses && userStats.weaknesses.length > 0 ? userStats.weaknesses : [
+              'Middlegame Tactics (74.2% accuracy, 2 blunders over 17 games) — material lost during multi-piece exchanges between moves 13–30.',
+              'Frequent Pattern: Hanging Piece (40% of blunders over 17 games) — remember to verify undefended pieces before moving.',
+              'Black Repertoire (71.5% vs 84.1% with White over 7 games) — feels less comfortable playing defensively on the back foot.'
+            ]).map((w, idx) => {
+              const [title, ...rest] = w.split(' — ')
+              return (
+                <div key={idx}>
+                  <strong className="text-[var(--text)] block font-medium">{title}</strong>
+                  {rest.length > 0 && <span>{rest.join(' — ')}</span>}
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      {/* Priority Training Plan & Actionable Drills */}
+      {/* Priority Training Plan & Actionable Drills — Flattened */}
       <div
-        className="rounded-xl p-5 border shadow-sm flex flex-col gap-4"
+        className="rounded-xl p-5 border flex flex-col gap-4"
         style={{
           background: 'var(--bg-panel)',
           borderColor: 'var(--border-subtle)'
         }}
       >
-        <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-subtle)]">
-          <Target className="w-4 h-4 text-[var(--accent)]" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-            Coach's Priority Focus
+        <div className="pb-2 border-b border-[var(--border-subtle)] flex items-baseline justify-between">
+          <h3 className="text-xs font-semibold text-[var(--text)]">
+            Coach's priority focus
           </h3>
+          {userStats && (
+            <span className="text-[10px] text-[var(--text-muted)] font-mono">
+              Rolling {userStats.gamesPlayed}-game window
+            </span>
+          )}
         </div>
 
+        {/* Immediate Action Item Banner with left border accent */}
         <div
-          className="p-4 rounded-lg flex items-start gap-3"
+          className="p-3.5 rounded-lg border-l-4 border-l-[var(--accent)]"
           style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-subtle)'
+            background: 'var(--bg-elevated)',
+            borderTop: '1px solid var(--border-subtle)',
+            borderRight: '1px solid var(--border-subtle)',
+            borderBottom: '1px solid var(--border-subtle)'
           }}
         >
-          <Sparkles className="w-5 h-5 text-[var(--accent)] shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-[var(--text)]">Immediate Action Item</span>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-              {nudge}
-            </p>
+          <div className="flex items-baseline justify-between mb-1">
+            <span className="text-xs font-semibold text-[var(--text)]">
+              Immediate action item
+            </span>
+            {userStats && (
+              <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                {userStats.gamesPlayed} games tracked
+              </span>
+            )}
           </div>
+          <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            {nudge}
+          </p>
         </div>
 
         {/* Recommended Drills */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           {(userStats?.recommendedDrills || [
             {
-              title: 'Blunder Check & Board Vision',
+              title: 'Blunder check & board vision',
               category: 'Tactics',
-              description: 'Perform a deliberate 3-second scan of all unprotected pieces before playing your candidate move.',
-              priority: 'high' as const
+              description: 'Scan all unprotected pieces for three deliberate seconds before confirming your candidate move.'
             },
             {
-              title: 'Middlegame Calculation & Tactics',
+              title: 'Middlegame calculation',
               category: 'Calculation',
-              description: 'Practice 15 minutes of Puzzle Rush daily, emphasizing double attacks, pins, and discovered attacks.',
-              priority: 'high' as const
+              description: 'Focus training on double attacks, pins, and discovered attacks during complex tactical skirmishes.'
             }
           ]).map((drill, idx) => (
             <div
               key={idx}
-              className="p-3.5 rounded-lg border flex flex-col gap-1.5 transition-colors"
+              className="p-3 rounded-lg border flex flex-col gap-1"
               style={{
                 background: 'var(--bg-elevated)',
                 borderColor: 'var(--border-subtle)'
               }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--text)]">{drill.title}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-medium bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                <span className="text-xs font-semibold text-[var(--text)]">{drill.title}</span>
+                <span className="text-xs text-[var(--text-muted)] font-mono">
                   {drill.category}
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed mt-0.5">
                 {drill.description}
               </p>
             </div>
@@ -602,45 +598,36 @@ export const StudyNext: React.FC<StudyNextProps> = ({
 
       {/* Tracked 20 Games (Rolling FIFO Window) */}
       <div
-        className="rounded-xl p-5 border shadow-sm flex flex-col gap-4"
+        className="rounded-xl p-5 border flex flex-col gap-4"
         style={{
           background: 'var(--bg-panel)',
           borderColor: 'var(--border-subtle)'
         }}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-[var(--accent)]" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text)]">
-              Tracked Games (Rolling 20 · FIFO Window)
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-xs font-semibold text-[var(--text)]">
+              Tracked games
             </h3>
-            <span
-              className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-              style={{ background: '#81b64c20', color: '#81b64c', border: '1px solid #81b64c40' }}
-            >
-              {userStats?.recent20Games?.length || 0} of 20 Tracked
+            <span className="text-xs text-[var(--text-muted)] font-mono">
+              ({userStats?.recent20Games?.length || 0} of 20 in rolling queue)
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
-              First-In, First-Out Queue
-            </span>
-            <button
-              type="button"
-              onClick={() => handleSync20Games()}
-              disabled={isSyncing || !userAccount.trim()}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer disabled:opacity-50"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>Refresh 20</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleSync20Games()}
+            disabled={isSyncing || !userAccount.trim()}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors cursor-pointer disabled:opacity-50"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Refresh 20</span>
+          </button>
         </div>
 
         <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-          All Coach stats and drills above are based <strong>strictly on your latest {userStats?.recent20Games?.length || 0} tracked games</strong>. As you play new games, they enter at <strong>#1 (Latest)</strong> and push out the oldest game (FIFO).
+          Coaching diagnoses are based on your latest {userStats?.recent20Games?.length || 0} tracked games. Newer games enter at #1 and automatically push out the oldest game.
         </p>
 
         {/* 20 Games List */}
@@ -652,7 +639,7 @@ export const StudyNext: React.FC<StudyNextProps> = ({
               const oppElo = isUserWhite ? game.blackElo : game.whiteElo
               const userWon = (isUserWhite && game.result === '1-0') || (!isUserWhite && game.result === '0-1')
               const userLost = (isUserWhite && game.result === '0-1') || (!isUserWhite && game.result === '1-0')
-              const outcome = userWon ? 'WIN' : userLost ? 'LOSS' : 'DRAW'
+              const outcome = userWon ? 'Win' : userLost ? 'Loss' : 'Draw'
               const userAcc = isUserWhite ? game.whiteAccuracy : game.blackAccuracy
               const userBlunders = isUserWhite ? game.whiteBlunders : game.blackBlunders
 
@@ -666,44 +653,35 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                   }}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span
-                      className={`font-mono text-[11px] px-2 py-0.5 rounded font-bold shrink-0 ${
-                        idx === 0
-                          ? 'bg-[var(--accent)] text-[var(--accent-text)]'
-                          : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'
-                      }`}
-                    >
-                      #{idx + 1} {idx === 0 ? 'Latest' : ''}
+                    <span className="font-mono text-xs text-[var(--text-muted)] shrink-0 w-6">
+                      #{idx + 1}
                     </span>
 
                     <span
-                      className="text-[10px] px-2 py-0.5 rounded font-bold shrink-0 uppercase"
-                      style={{
-                        background:
-                          outcome === 'WIN'
-                            ? '#81b64c'
-                            : outcome === 'LOSS'
-                            ? '#ca3431'
-                            : 'var(--text-muted)',
-                        color: '#fff'
-                      }}
+                      className={`text-xs font-semibold shrink-0 font-mono w-10 ${
+                        outcome === 'Win'
+                          ? 'text-[#81b64c]'
+                          : outcome === 'Loss'
+                          ? 'text-[#ca3431]'
+                          : 'text-[var(--text-muted)]'
+                      }`}
                     >
                       {outcome}
                     </span>
 
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text)] truncate">
-                        <span className="text-[11px] text-[var(--text-muted)] font-normal">
+                        <span className="text-[var(--text-muted)] font-normal text-xs">
                           {isUserWhite ? '♔ White' : '♚ Black'}
                         </span>
                         <span>vs {opponent}</span>
                         {oppElo && (
-                          <span className="text-[11px] text-[var(--text-muted)] font-normal">
+                          <span className="text-[var(--text-muted)] font-normal text-xs">
                             ({oppElo})
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] truncate">
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] font-mono truncate">
                         <span>{game.opening || game.eco || 'Game'}</span>
                         <span>·</span>
                         <span>{game.date}</span>
@@ -712,11 +690,11 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                    <div className="text-right">
-                      <span className="block font-mono text-xs font-bold text-[var(--text)]">
+                    <div className="text-right font-mono text-xs">
+                      <span className="font-bold text-[var(--text)]">
                         {userAcc}% acc
                       </span>
-                      <span className="block text-[10px] text-[var(--text-muted)]">
+                      <span className="text-[var(--text-muted)] block text-xs">
                         {userBlunders} {userBlunders === 1 ? 'blunder' : 'blunders'}
                       </span>
                     </div>
@@ -727,7 +705,7 @@ export const StudyNext: React.FC<StudyNextProps> = ({
                         onClick={() => onLoadPgn(game.pgn!)}
                         className="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border border-[var(--border-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all cursor-pointer"
                         style={{ background: 'var(--bg-secondary)' }}
-                        title="Open this game in Game Review to analyze move-by-move"
+                        title="Open this game in Game Review"
                       >
                         <span>Review</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -744,17 +722,17 @@ export const StudyNext: React.FC<StudyNextProps> = ({
             style={{ background: 'var(--bg-secondary)' }}
           >
             <p className="text-xs text-[var(--text-secondary)]">
-              No games tracked yet. Click <strong>"Sync Latest 20 Games"</strong> to fetch your latest 20 games from Chess.com.
+              No games tracked yet. Click "Sync latest 20" to fetch your recent games from Chess.com.
             </p>
             {userAccount && (
               <button
                 type="button"
                 onClick={() => handleSync20Games()}
                 disabled={isSyncing}
-                className="mt-1 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer shadow-sm"
+                className="mt-1 px-3 py-1.5 rounded-md text-xs font-semibold cursor-pointer"
                 style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}
               >
-                Fetch 20 Games from Chess.com
+                Fetch 20 games from Chess.com
               </button>
             )}
           </div>

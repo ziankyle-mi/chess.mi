@@ -253,9 +253,54 @@ export function generateDeepExplanation(
     }
   }
 
+  // Book Move handling: return opening-aware theory explanation directly
+  if (classification === 'book') {
+    tacticalRole = 'Opening Theory'
+    const headline = `${sideName} plays ${move.san} (Book Move)`
+    const explanation =
+      move.explanation ||
+      'Established opening theory contesting key central squares according to grandmaster praxis.'
+    const whyItMatters =
+      openingTipTheme || 'Control the center, develop minor pieces harmoniously, and secure king safety.'
+
+    return {
+      headline,
+      tacticalRole,
+      explanation,
+      whyItMatters,
+      threats: {
+        created: threatCreated,
+        prevented: threatPrevented
+      },
+      boardImpact: {
+        kingSafety,
+        pieceActivity,
+        keySquaresControlled
+      }
+    }
+  }
+
   // 7. Compose Headline & In-Depth Explanation Narrative
   let headline = `${sideName} plays ${move.san}`
-  if (checkEvasionText) {
+  if (classification === 'blunder') {
+    tacticalRole = 'Decisive Blunder'
+    headline = `${sideName} blunders with ${move.san}`
+  } else if (classification === 'mistake') {
+    tacticalRole = 'Tactical Mistake'
+    headline = `${sideName} makes a mistake with ${move.san}`
+  } else if (classification === 'miss') {
+    tacticalRole = 'Missed Advantage'
+    headline = `${sideName} misses winning continuation with ${move.san}`
+  } else if (classification === 'inaccuracy') {
+    tacticalRole = 'Positional Inaccuracy'
+    headline = `${sideName} plays inaccurate ${move.san}`
+  } else if (move.tacticalPattern === 'Book Move') {
+    tacticalRole = 'Opening Theory'
+    headline = `${sideName} plays book move ${move.san}`
+  } else if (move.tacticalPattern === 'Opening Deviation') {
+    tacticalRole = 'Opening Deviation'
+    headline = `${sideName} leaves book with ${move.san}`
+  } else if (checkEvasionText) {
     headline = `${checkEvasionText.split('.')[0]}`
   } else if (isCheckmate) {
     headline = `Checkmate delivered on ${move.to}!`
@@ -273,7 +318,10 @@ export function generateDeepExplanation(
 
   // Focused 1-sentence explanation
   let explanation = move.explanation || ''
-  if (checkEvasionText) {
+  if (move.tacticalPattern === 'Opening Deviation') {
+    // Keep the opening deviation explanation directly
+    explanation = move.explanation || `Leaves standard theory, giving up the initiative.`
+  } else if (checkEvasionText) {
     explanation = checkEvasionText
   } else if (checkDeliveredText) {
     explanation = checkDeliveredText
