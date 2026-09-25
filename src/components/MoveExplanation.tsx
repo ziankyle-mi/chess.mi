@@ -82,12 +82,14 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
         style={{
           background: 'var(--bg-panel)',
           border: '1px solid var(--border-subtle)',
-          minHeight: explanationMode === 'depth' ? '160px' : '135px'
+          height: explanationMode === 'depth' ? '176px' : '136px',
+          minHeight: explanationMode === 'depth' ? '176px' : '136px',
+          maxHeight: explanationMode === 'depth' ? '176px' : '136px'
         }}
       >
-        <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+        <div className="flex items-center justify-between px-3.5 py-2" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center font-mono font-bold text-xs" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
+            <div className="w-[26px] h-[26px] rounded-full flex items-center justify-center font-mono font-bold text-xs shrink-0" style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
               0
             </div>
             <div className="min-w-0">
@@ -134,14 +136,14 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
           </div>
         </div>
 
-        <div className="px-4 py-3 flex-1 flex flex-col justify-between space-y-2">
+        <div className="px-3.5 py-2.5 flex-1 flex flex-col justify-between overflow-hidden">
           <div className="flex items-center gap-2 text-xs">
             <BookOpen className="w-4 h-4 shrink-0" style={{ color: 'var(--accent)' }} />
             <span className="font-medium truncate" style={{ color: 'var(--text)' }}>{openingName}</span>
             <span className="text-[11px] truncate opacity-75" style={{ color: 'var(--text-secondary)' }}>— {openingTip?.theme || 'Standard Game'}</span>
           </div>
 
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-xs leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>
             {openingTip?.keyPlans?.[0]
               ? `Key Plan: ${openingTip.keyPlans[0]}`
               : 'Both sides contest the center and coordinate pieces. Use ← → arrows to analyze each move.'}
@@ -169,11 +171,13 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
       style={{
         background: 'var(--bg-panel)',
         border: '1px solid var(--border-subtle)',
-        minHeight: explanationMode === 'depth' ? '160px' : '135px'
+        height: explanationMode === 'depth' ? '176px' : '136px',
+        minHeight: explanationMode === 'depth' ? '176px' : '136px',
+        maxHeight: explanationMode === 'depth' ? '176px' : '136px'
       }}
     >
       {/* Classification & Mode Header Bar */}
-      <div className="flex items-center justify-between px-3.5 py-2.5" style={{ borderBottom: `2px solid ${classColor}` }}>
+      <div className="flex items-center justify-between px-3.5 py-2" style={{ borderBottom: `2px solid ${classColor}` }}>
         <div className="flex items-center gap-2.5 min-w-0">
           <ClassificationBadge classification={classification} size={26} />
           <div className="min-w-0">
@@ -228,9 +232,9 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
 
       {/* Mode 1: In-Depth Coach View */}
       {explanationMode === 'depth' && deep && (
-        <div className="px-3.5 py-2.5 flex-1 flex flex-col justify-between space-y-2">
-          {/* Tactical headline & role */}
-          <div className="flex items-center justify-between gap-2">
+        <div className="px-3.5 py-2 flex-1 flex flex-col justify-between overflow-hidden">
+          {/* Row 1: Tactical headline & role */}
+          <div className="flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className="text-[10px] uppercase font-mono font-semibold px-1.5 py-0.5 rounded tracking-wide shrink-0"
@@ -249,54 +253,21 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
             )}
           </div>
 
-          {/* Detailed Narrative */}
-          <div className="flex items-start gap-2">
+          {/* Row 2: Detailed Narrative */}
+          <div className="flex items-start gap-2 shrink-0">
             {isError ? (
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: classColor }} />
             ) : (
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: classColor }} />
             )}
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-xs leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
               {deep.explanation}
             </p>
           </div>
 
-          {/* Tactical Dynamics / Inline chips */}
-          {(deep.threats.prevented || deep.threats.created || deep.threats.conceded) && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {deep.threats.prevented && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-                >
-                  <ShieldCheck className="w-3 h-3 text-[var(--accent)]" />
-                  <span className="truncate max-w-[210px]">{deep.threats.prevented}</span>
-                </span>
-              )}
-              {deep.threats.created && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
-                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
-                >
-                  <Zap className="w-3 h-3 text-[var(--accent)]" />
-                  <span className="truncate max-w-[210px]">{deep.threats.created}</span>
-                </span>
-              )}
-              {deep.threats.conceded && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px]"
-                  style={{ background: 'rgba(232, 120, 48, 0.1)', border: '1px solid rgba(232, 120, 48, 0.25)', color: classColor }}
-                >
-                  <AlertTriangle className="w-3 h-3" />
-                  <span className="truncate max-w-[210px]">{deep.threats.conceded}</span>
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Better Move Suggestion bar (when error) */}
-          {isError && deep.bestMoveComparison && (
-            <div className="flex items-center justify-between px-2.5 py-1 rounded text-xs" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
+          {/* Row 3: Tactical / Recommendation Bar (ALWAYS rendered with fixed height!) */}
+          {isError && deep.bestMoveComparison ? (
+            <div className="flex items-center justify-between px-2.5 py-1 rounded text-xs shrink-0" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)' }}>
               <div className="flex items-center gap-1.5 min-w-0">
                 <ArrowRight className="w-3 h-3 shrink-0" style={{ color: 'var(--accent)' }} />
                 <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Better:</span>
@@ -308,12 +279,47 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
                 </span>
               </div>
             </div>
+          ) : (deep.threats.prevented || deep.threats.created || deep.threats.conceded) ? (
+            <div className="flex items-center gap-1.5 overflow-hidden shrink-0">
+              {deep.threats.prevented && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] shrink-0"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                >
+                  <ShieldCheck className="w-3 h-3 text-[var(--accent)] shrink-0" />
+                  <span className="truncate max-w-[210px]">{deep.threats.prevented}</span>
+                </span>
+              )}
+              {deep.threats.created && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] shrink-0"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
+                >
+                  <Zap className="w-3 h-3 text-[var(--accent)] shrink-0" />
+                  <span className="truncate max-w-[210px]">{deep.threats.created}</span>
+                </span>
+              )}
+              {deep.threats.conceded && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] shrink-0"
+                  style={{ background: 'rgba(232, 120, 48, 0.1)', border: '1px solid rgba(232, 120, 48, 0.25)', color: classColor }}
+                >
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  <span className="truncate max-w-[210px]">{deep.threats.conceded}</span>
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] shrink-0" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              <ShieldCheck className="w-3 h-3 text-[var(--accent)] shrink-0" />
+              <span className="truncate">{deep.boardImpact.pieceActivity}</span>
+            </div>
           )}
 
-          {/* Compact Board Impact / Principle Footer */}
-          <div className="flex items-center justify-between text-[11px] pt-1" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+          {/* Row 4: Compact Board Impact / Principle Footer */}
+          <div className="flex items-center justify-between text-[11px] pt-1 shrink-0" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
             <span className="truncate max-w-[320px]">{deep.whyItMatters}</span>
-            {deep.boardImpact.keySquaresControlled.length > 0 && (
+            {deep.boardImpact.keySquaresControlled.length > 0 ? (
               <div className="flex items-center gap-1 font-mono shrink-0">
                 <span>Center:</span>
                 {deep.boardImpact.keySquaresControlled.map((sq) => (
@@ -322,6 +328,8 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
                   </span>
                 ))}
               </div>
+            ) : (
+              <span className="truncate font-mono text-[10px] shrink-0">{deep.boardImpact.kingSafety.split('.')[0]}</span>
             )}
           </div>
         </div>
@@ -329,21 +337,21 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
 
       {/* Mode 2: Concise Summary View */}
       {explanationMode === 'concise' && (
-        <div className="px-4 py-3 flex-1 flex flex-col justify-between space-y-2.5">
+        <div className="px-3.5 py-2 flex-1 flex flex-col justify-between overflow-hidden">
           <div className="flex items-start gap-2.5">
             {isError ? (
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: classColor }} />
             ) : (
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" style={{ color: classColor }} />
             )}
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm leading-relaxed line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
               {currentMove.explanation || 'Solid move maintaining piece coordination.'}
             </p>
           </div>
 
           {/* Better move suggestion or stable footer row */}
           {isError && currentMove.bestMoveSan ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md" style={{ background: 'var(--bg-elevated)' }}>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md shrink-0" style={{ background: 'var(--bg-elevated)' }}>
               <ArrowRight className="w-3.5 h-3.5" style={{ color: 'var(--accent)' }} />
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Better:</span>
               <span className="font-mono text-xs font-bold" style={{ color: 'var(--accent)' }}>
@@ -351,16 +359,9 @@ export const MoveExplanation: React.FC<MoveExplanationProps> = ({
               </span>
             </div>
           ) : (
-            <div className="flex items-center justify-between text-[11px] pt-1" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
+            <div className="flex items-center justify-between text-[11px] pt-1 shrink-0" style={{ borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>
               <span className="truncate max-w-[260px]">{openingTip?.theme || openingName}</span>
               <span className="font-mono shrink-0">Move {currentMove.moveNumber}</span>
-            </div>
-          )}
-
-          {/* Opening pitfall reminder */}
-          {currentMove.moveNumber <= 12 && openingTip && isError && (
-            <div className="text-[11px] italic" style={{ color: 'var(--text-muted)' }}>
-              Pitfall: {openingTip.pitfalls}
             </div>
           )}
         </div>
